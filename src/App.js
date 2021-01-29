@@ -35,16 +35,14 @@ function Slot (props) {
  *
  * Props:
  *  - active
- *  - color
- *  - coord - the position on the board
+ *  - piece
  *  - disabled
  *  - onClick
  */
 function Piece (props) {
   const {
     active,
-    color,
-    coord,
+    piece,
     disabled,
     onClick,
     ...meshProps
@@ -56,7 +54,7 @@ function Piece (props) {
   // Set up state for the hovered and active state
   const [hovered, setHover] = useState(false)
 
-  const {x, z} = useSpring({ x: coord[0], z: coord[1] })
+  const {x, z} = useSpring({ x: piece.coord[0], z: piece.coord[1] })
 
   return (
     <a.mesh
@@ -73,7 +71,7 @@ function Piece (props) {
       <meshStandardMaterial color={
         active
           ? 'orange'
-          : (!disabled && hovered ? 'hotpink' : color)
+          : (!disabled && hovered ? 'hotpink' : piece.color)
       } />
     </a.mesh>
   )
@@ -185,6 +183,7 @@ function createPieces () {
 
   /* Create the pieces. */
   return board.map((t, i) => ({
+    id: i,
     type: shortToType[t],
     color: Math.floor(i / 8) > 4 ? 'black' : 'white',
     coord: [i % 8, Math.floor(i / 8)]
@@ -195,7 +194,20 @@ function App() {
   const [pieces, setPieces] = useState(createPieces())
 
   /* The index in the pieces array of the currently selected piece. */
-  const [activePieceIndex, setActivePieceIndex] = useState()
+  const [activePiece, setActivePiece] = useState()
+
+  const onMovePiece = (oldPiece, newPiece) => {
+    const clone = pieces.filter(x => (
+      (x.coord[0] !== newPiece.coord[0]
+        || x.coord[1] !== newPiece.coord[1])
+      && x != oldPiece
+    ))
+    clone.push(newPiece)
+
+    /* Deselect the piece. */
+    setActivePiece(undefined)
+    setPieces(clone)
+  }
 
   return (
     <>
@@ -211,20 +223,16 @@ function App() {
         >
           {pieces.map((piece, i) => (
             <Piece
-              {...piece}
-              key={i}
-              onClick={() => setActivePieceIndex(i)}
-              active={i === activePieceIndex}
+              key={piece.id}
+              piece={piece}
+              onClick={() => setActivePiece(piece)}
+              active={piece === activePiece}
             />
           ))}
-          {activePieceIndex !== undefined && (
+          {activePiece !== undefined && (
             <PieceMover
-              piece={pieces[activePieceIndex]}
-              onChange={(piece) => {
-                const clone = [...pieces]
-                clone[activePieceIndex] = piece
-                setPieces(clone)
-              }}
+              piece={activePiece}
+              onChange={(newPiece) => onMovePiece(activePiece, newPiece)}
             />
           )}
         </group>
