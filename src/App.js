@@ -89,6 +89,7 @@ function Piece (props) {
 function PieceMover (props) {
   const {
     piece,
+    pieces,
     onChange
   } = props
 
@@ -96,24 +97,52 @@ function PieceMover (props) {
 
   const direction = piece.color === 'white' ? 1 : -1
 
+  /*
+   * Creates a place to attack at the given position if possible. Returns true
+   * if possible, false if not in bounds or if the position would hit a friendly
+   * piece.
+   */
   const makeAttack = (x, y) => {
-    if (x >= 0 && y >= 0 && x < 8 && y < 8) {
+    /* Find any pieces at the position. */
+    const hitPieces = pieces.filter(p => p.coord[0] === x && p.coord[1] === y)
+    const inBounds = x >= 0 && y >= 0 && x < 8 && y < 8
+    const hittingFriendly = (
+      hitPieces.length > 0 &&
+      hitPieces[0].color === piece.color)
+    if (inBounds && !hittingFriendly) {
       possibleCoords.push([x, y])
       return true
     }
     return false
   }
 
+  /*
+   * Creates an attack with count directions, starting at the given offset in
+   * radians.
+   */
   const makeAngleAttack = (count, offset = 0, max = Infinity) => {
     possibleCoords = []
     for (let i = 0; i < count; i++) {
       const dx = Math.sign(Math.round(Math.cos(i * 2 * Math.PI / count + offset)))
       const dy = Math.sign(Math.round(Math.sin(i * 2 * Math.PI / count + offset)))
       let [x, y] = piece.coord
+
+      let hitPieceCount = 0
       for (let j = 0; j < max; j++) {
         x += dx
         y += dy
+
+        /* You can only hit one piece. */
+        hitPieceCount += pieces
+          .filter(p => p.coord[0] === x && p.coord[1] === y)
+          .length
+
         if (!makeAttack(x, y)) {
+          break
+        }
+
+        /* Stop iterating if we hit a piece. */
+        if (hitPieceCount > 0) {
           break
         }
       }
@@ -223,6 +252,7 @@ function App () {
           {pieces.map((piece, i) => (
             <Piece
               key={piece.id}
+              pieces={pieces}
               piece={piece}
               onClick={() => setActivePiece(piece)}
               active={piece === activePiece}
@@ -230,6 +260,7 @@ function App () {
           ))}
           {activePiece !== undefined && (
             <PieceMover
+              pieces={pieces}
               piece={activePiece}
               onChange={(newPiece) => onMovePiece(activePiece, newPiece)}
             />
