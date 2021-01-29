@@ -1,7 +1,5 @@
-import logo from './logo.svg';
-
-import React, { useRef, useState, useEffect } from 'react'
-import { Canvas, useFrame, useThree } from 'react-three-fiber'
+import React, { useRef, useState } from 'react'
+import { Canvas } from 'react-three-fiber'
 import { a, useSpring } from 'react-spring/three'
 
 /**
@@ -54,7 +52,7 @@ function Piece (props) {
   // Set up state for the hovered and active state
   const [hovered, setHover] = useState(false)
 
-  const {x, z} = useSpring({ x: piece.coord[0], z: piece.coord[1] })
+  const { x, z } = useSpring({ x: piece.coord[0], z: piece.coord[1] })
 
   return (
     <a.mesh
@@ -72,7 +70,8 @@ function Piece (props) {
         active
           ? 'orange'
           : (!disabled && hovered ? 'hotpink' : piece.color)
-      } />
+      }
+      />
     </a.mesh>
   )
 }
@@ -107,11 +106,11 @@ function PieceMover (props) {
 
   const makeAngleAttack = (count, offset = 0, max = Infinity) => {
     possibleCoords = []
-    for (let i = 0; i < count; i ++) {
+    for (let i = 0; i < count; i++) {
       const dx = Math.sign(Math.round(Math.cos(i * 2 * Math.PI / count + offset)))
       const dy = Math.sign(Math.round(Math.sin(i * 2 * Math.PI / count + offset)))
       let [x, y] = piece.coord
-      for (let j = 0; j < max; j ++) {
+      for (let j = 0; j < max; j++) {
         x += dx
         y += dy
         if (!makeAttack(x, y)) {
@@ -169,16 +168,16 @@ function createPieces () {
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
-    'R', 'k', 'B', 'Q', 'K', 'B', 'k', 'R',
+    'R', 'k', 'B', 'Q', 'K', 'B', 'k', 'R'
   ]
 
   const shortToType = {
-    'R': 'rook',
-    'k': 'knight',
-    'P': 'pawn',
-    'K': 'king',
-    'B': 'bishop',
-    'Q': 'queen'
+    R: 'rook',
+    k: 'knight',
+    P: 'pawn',
+    K: 'king',
+    B: 'bishop',
+    Q: 'queen'
   }
 
   /* Create the pieces. */
@@ -190,7 +189,7 @@ function createPieces () {
   })).filter((x) => x.type)
 }
 
-function App() {
+function App () {
   const [pieces, setPieces] = useState(createPieces())
 
   /* The index in the pieces array of the currently selected piece. */
@@ -198,9 +197,9 @@ function App() {
 
   const onMovePiece = (oldPiece, newPiece) => {
     const clone = pieces.filter(x => (
-      (x.coord[0] !== newPiece.coord[0]
-        || x.coord[1] !== newPiece.coord[1])
-      && x != oldPiece
+      (x.coord[0] !== newPiece.coord[0] ||
+        x.coord[1] !== newPiece.coord[1]) &&
+      x !== oldPiece
     ))
     clone.push(newPiece)
 
@@ -238,7 +237,7 @@ function App() {
         </group>
       </Canvas>
     </>
-  );
+  )
 }
 
-export default App;
+export default App
