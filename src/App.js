@@ -1,6 +1,102 @@
-import React, { useRef, useState } from 'react'
-import { Canvas } from 'react-three-fiber'
-import { a, useSpring } from 'react-spring/three'
+import React, { useRef, useState, useEffect } from 'react'
+import { Canvas, useThree, useFrame } from 'react-three-fiber'
+import { a, animated, useSpring } from 'react-spring/three'
+
+/** Camera. */
+function Camera (props) {
+  const ref = useRef()
+  const { setDefaultCamera } = useThree()
+  // Make the camera known to the system
+  useEffect(() => setDefaultCamera(ref.current), [])
+  // Update it every frame
+  useFrame(() => ref.current.updateMatrixWorld())
+  return <perspectiveCamera ref={ref} {...props} />
+}
+
+/**
+ * A component that looks at a target in world space.
+ *
+ * Props:
+ *  - children
+ *  - target - An array of 3 numbers representing the target in world space
+ */
+function LookAt (props) {
+  const {
+    children,
+    target,
+    ...rest
+  } = props
+
+  const ref = useRef()
+  useFrame(() => {
+    ref.current.lookAt(...target)
+  })
+
+  return (
+    <group ref={ref} {...rest}>
+      {children}
+    </group>
+  )
+}
+
+/**
+ * A component that rotates around a target.
+ *
+ * Props:
+ *  - children
+ *  - target - An array of 3 numbers representing the target in world space
+ *  - angleX - The angle around the target
+ *  - angleY - The vertical angle around the target
+ */
+function Orbiter (props) {
+  const {
+    children,
+    target,
+    angleX,
+    angleY,
+    distance
+  } = props
+
+  return (
+    <LookAt
+      target={target}
+      position={[
+        target[0] + Math.sin(angleX || 0) * distance,
+        target[1] + Math.sin(angleY || 0) * distance,
+        target[2] + Math.cos(angleX || 0) * distance
+      ]}
+    >
+      {children}
+    </LookAt>
+  )
+}
+
+const AnimatedOrbiter = animated(Orbiter)
+
+function ChessCamera (props) {
+  const {
+    turn,
+    ...cameraProps
+  } = props
+
+  const targetAngle = turn === 'black' ? 0 : Math.PI
+
+  const { angleX } = useSpring({
+    angleX: targetAngle,
+    delay: 1000
+  })
+
+  return (
+    <AnimatedOrbiter
+      target={[0, 0, 0]}
+      angleX={angleX || targetAngle}
+      angleY={Math.PI / 4}
+      distance={7}
+    >
+      <Camera rotation={[0, Math.PI, 0]} {...cameraProps} />
+    </AnimatedOrbiter>
+  )
+}
 
 /**
  * A clickable slot on the chessboard.
@@ -218,49 +314,70 @@ function createPieces () {
   })).filter((x) => x.type)
 }
 
+/** Creates a new game (match). */
+function makeGame () {
+  return {
+    pieces: createPieces(),
+    moveCount: 0
+  }
+}
+
+/**
+ * Moves a piece on the board and returns the new game state. The moveCount for
+ * the game is incremented by moveCount, which is default 1.
+ */
+function movePiece (game, oldPiece, newPiece, moveCount = 1) {
+  const pieces = game.pieces.filter(x => (
+    (x.coord[0] !== newPiece.coord[0] ||
+      x.coord[1] !== newPiece.coord[1]) &&
+    x !== oldPiece
+  ))
+  pieces.push(newPiece)
+
+  return {
+    ...game,
+    pieces,
+    moveCount: game.moveCount + moveCount
+  }
+}
+
 function App () {
-  const [pieces, setPieces] = useState(createPieces())
+  const [game, setGame] = useState(makeGame())
 
   /* The index in the pieces array of the currently selected piece. */
   const [activePiece, setActivePiece] = useState()
 
+  const turn = game.moveCount % 2 ? 'black' : 'white'
+
   const onMovePiece = (oldPiece, newPiece) => {
-    const clone = pieces.filter(x => (
-      (x.coord[0] !== newPiece.coord[0] ||
-        x.coord[1] !== newPiece.coord[1]) &&
-      x !== oldPiece
-    ))
-    clone.push(newPiece)
+    setGame(movePiece(game, oldPiece, newPiece))
 
     /* Deselect the piece. */
     setActivePiece(undefined)
-    setPieces(clone)
   }
 
   return (
     <>
-      <Canvas
-        camera={{
-          position: [0, 5, -7]
-        }}
-      >
+      <Canvas>
+        <ChessCamera turn={turn} />
         <ambientLight />
         <pointLight position={[10, 10, 10]} />
         <group
-          position={[-4, 0, -4]}
+          position={[-3.5, 0, -3.5]}
         >
-          {pieces.map((piece, i) => (
+          {game.pieces.map((piece, i) => (
             <Piece
               key={piece.id}
-              pieces={pieces}
+              game={game}
               piece={piece}
               onClick={() => setActivePiece(piece)}
               active={piece === activePiece}
+              disabled={turn !== piece.color}
             />
           ))}
           {activePiece !== undefined && (
             <PieceMover
-              pieces={pieces}
+              pieces={game.pieces}
               piece={activePiece}
               onChange={(newPiece) => onMovePiece(activePiece, newPiece)}
             />
