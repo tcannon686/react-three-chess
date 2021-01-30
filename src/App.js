@@ -193,6 +193,10 @@ function PieceMover (props) {
 
   const direction = piece.color === 'white' ? 1 : -1
 
+  const getPieceAtPosition = (x, y) => (
+    pieces.filter(p => p.coord[0] === x && p.coord[1] === y)[0]
+  )
+
   /*
    * Creates a place to attack at the given position if possible. Returns true
    * if possible, false if not in bounds or if the position would hit a friendly
@@ -200,11 +204,9 @@ function PieceMover (props) {
    */
   const makeAttack = (x, y) => {
     /* Find any pieces at the position. */
-    const hitPieces = pieces.filter(p => p.coord[0] === x && p.coord[1] === y)
+    const hitPiece = getPieceAtPosition(x, y)
     const inBounds = x >= 0 && y >= 0 && x < 8 && y < 8
-    const hittingFriendly = (
-      hitPieces.length > 0 &&
-      hitPieces[0].color === piece.color)
+    const hittingFriendly = (hitPiece && hitPiece.color === piece.color)
     if (inBounds && !hittingFriendly) {
       possibleCoords.push([x, y])
       return true
@@ -246,7 +248,20 @@ function PieceMover (props) {
   }
 
   if (piece.type === 'pawn') {
-    possibleCoords = [[piece.coord[0], piece.coord[1] + direction]]
+    makeAttack(piece.coord[0], piece.coord[1] + direction)
+
+    const left = [piece.coord[0] - 1, piece.coord[1] + direction]
+    const right = [piece.coord[0] + 1, piece.coord[1] + direction]
+
+    const leftPiece = getPieceAtPosition(...left)
+    const rightPiece = getPieceAtPosition(...right)
+
+    if (leftPiece && leftPiece.color !== piece.color) {
+      makeAttack(...left)
+    }
+    if (rightPiece && rightPiece.color !== piece.color) {
+      makeAttack(...right)
+    }
   } else if (piece.type === 'queen') {
     makeAngleAttack(10)
   } else if (piece.type === 'rook') {
