@@ -121,19 +121,28 @@ export function getValidMoves (game, piece) {
   }
 
   if (piece.type === 'pawn') {
-    makeAttack(piece.coord[0], piece.coord[1] + direction)
-
+    const forward = [piece.coord[0], piece.coord[1] + direction]
+    const forward2 = [piece.coord[0], piece.coord[1] + 2 * direction]
     const left = [piece.coord[0] - 1, piece.coord[1] + direction]
     const right = [piece.coord[0] + 1, piece.coord[1] + direction]
 
     const leftPiece = getPieceAtPosition(...left)
     const rightPiece = getPieceAtPosition(...right)
+    const forwardPiece = getPieceAtPosition(...forward)
+    const forwardPiece2 = getPieceAtPosition(...forward2)
 
     if (leftPiece && leftPiece.color !== piece.color) {
       makeAttack(...left)
     }
     if (rightPiece && rightPiece.color !== piece.color) {
       makeAttack(...right)
+    }
+    if (!forwardPiece) {
+      makeAttack(...forward)
+
+      if (!forwardPiece2 && !piece.hasMoved) {
+        makeAttack(...forward2)
+      }
     }
   } else if (piece.type === 'queen') {
     makeAngleAttack(10)

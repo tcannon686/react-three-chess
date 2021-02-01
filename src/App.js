@@ -138,7 +138,8 @@ function PieceMover (props) {
           coord={coord}
           onClick={() => onChange({
             ...piece,
-            coord
+            coord,
+            hasMoved: true
           })}
         />
       ))}
