@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
 
 import { ChessCamera } from './camera'
-import { makeGame, movePiece } from './chess'
+import { makeGame, movePiece, getValidMoves } from './chess'
 
 /** A chess board. */
 function Board (props) {
@@ -120,108 +120,19 @@ function Piece (props) {
  *
  * Props:
  *  - piece - the piece to be moved
+ *  - game - the current game state
  *  - onChange (piece) - A callback function called with the modified piece
  */
 function PieceMover (props) {
   const {
     piece,
-    pieces,
+    game,
     onChange
   } = props
 
-  let possibleCoords = []
-
-  const direction = piece.color === 'white' ? 1 : -1
-
-  const getPieceAtPosition = (x, y) => (
-    pieces.filter(p => p.coord[0] === x && p.coord[1] === y)[0]
-  )
-
-  /*
-   * Creates a place to attack at the given position if possible. Returns true
-   * if possible, false if not in bounds or if the position would hit a friendly
-   * piece.
-   */
-  const makeAttack = (x, y) => {
-    /* Find any pieces at the position. */
-    const hitPiece = getPieceAtPosition(x, y)
-    const inBounds = x >= 0 && y >= 0 && x < 8 && y < 8
-    const hittingFriendly = (hitPiece && hitPiece.color === piece.color)
-    if (inBounds && !hittingFriendly) {
-      possibleCoords.push([x, y])
-      return true
-    }
-    return false
-  }
-
-  /*
-   * Creates an attack with count directions, starting at the given offset in
-   * radians.
-   */
-  const makeAngleAttack = (count, offset = 0, max = Infinity) => {
-    possibleCoords = []
-    for (let i = 0; i < count; i++) {
-      const dx = Math.sign(Math.round(Math.cos(i * 2 * Math.PI / count + offset)))
-      const dy = Math.sign(Math.round(Math.sin(i * 2 * Math.PI / count + offset)))
-      let [x, y] = piece.coord
-
-      let hitPieceCount = 0
-      for (let j = 0; j < max; j++) {
-        x += dx
-        y += dy
-
-        /* You can only hit one piece. */
-        hitPieceCount += pieces
-          .filter(p => p.coord[0] === x && p.coord[1] === y)
-          .length
-
-        if (!makeAttack(x, y)) {
-          break
-        }
-
-        /* Stop iterating if we hit a piece. */
-        if (hitPieceCount > 0) {
-          break
-        }
-      }
-    }
-  }
-
-  if (piece.type === 'pawn') {
-    makeAttack(piece.coord[0], piece.coord[1] + direction)
-
-    const left = [piece.coord[0] - 1, piece.coord[1] + direction]
-    const right = [piece.coord[0] + 1, piece.coord[1] + direction]
-
-    const leftPiece = getPieceAtPosition(...left)
-    const rightPiece = getPieceAtPosition(...right)
-
-    if (leftPiece && leftPiece.color !== piece.color) {
-      makeAttack(...left)
-    }
-    if (rightPiece && rightPiece.color !== piece.color) {
-      makeAttack(...right)
-    }
-  } else if (piece.type === 'queen') {
-    makeAngleAttack(10)
-  } else if (piece.type === 'rook') {
-    makeAngleAttack(4)
-  } else if (piece.type === 'bishop') {
-    makeAngleAttack(4, Math.PI / 4)
-  } else if (piece.type === 'king') {
-    makeAngleAttack(10, 0, 1)
-  } else if (piece.type === 'knight') {
-    [[1, 2], [2, 1]].forEach((pair) => {
-      makeAttack(piece.coord[0] + pair[0], piece.coord[1] + pair[1])
-      makeAttack(piece.coord[0] - pair[0], piece.coord[1] + pair[1])
-      makeAttack(piece.coord[0] + pair[0], piece.coord[1] - pair[1])
-      makeAttack(piece.coord[0] - pair[0], piece.coord[1] - pair[1])
-    })
-  }
-
   return (
     <>
-      {possibleCoords.map((coord, i) => (
+      {getValidMoves(game, piece).map((coord, i) => (
         <Slot
           key={i}
           coord={coord}
@@ -305,7 +216,7 @@ function Game () {
         ))}
         {activePiece !== undefined && (
           <PieceMover
-            pieces={game.pieces}
+            game={game}
             piece={activePiece}
             onChange={(newPiece) => onMovePiece(newPiece)}
           />
