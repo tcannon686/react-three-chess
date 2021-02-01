@@ -43,14 +43,16 @@ export function makeGame () {
 /**
  * Moves a piece on the board and returns the new game state. The moveCount for
  * the game is incremented by moveCount, which is default 1.
+ *
+ * The previous piece is removed based on its ID.
  */
-export function movePiece (game, oldPiece, newPiece, moveCount = 1) {
+export function movePiece (game, piece, moveCount = 1) {
   const pieces = game.pieces.filter(x => (
-    (x.coord[0] !== newPiece.coord[0] ||
-      x.coord[1] !== newPiece.coord[1]) &&
-    x !== oldPiece
+    (x.coord[0] !== piece.coord[0] ||
+      x.coord[1] !== piece.coord[1]) &&
+    x.id !== piece.id
   ))
-  pieces.push(newPiece)
+  pieces.push(piece)
 
   return {
     ...game,

@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useRef, useState } from 'react'
+import React, { Suspense, useMemo, useState } from 'react'
 import { Canvas, useLoader } from 'react-three-fiber'
 import { a, useSpring } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -83,9 +83,6 @@ function Piece (props) {
     ...meshProps
   } = props
 
-  // This reference will give us direct access to the mesh
-  const mesh = useRef()
-
   // Set up state for the hovered and active state
   const [hovered, setHover] = useState(false)
 
@@ -94,7 +91,6 @@ function Piece (props) {
   return (
     <a.mesh
       {...meshProps}
-      ref={mesh}
       position-x={x}
       position-y={0}
       position-z={z}
@@ -280,8 +276,8 @@ function Game () {
 
   const turn = game.moveCount % 2 ? 'black' : 'white'
 
-  const onMovePiece = (oldPiece, newPiece) => {
-    setGame(movePiece(game, oldPiece, newPiece))
+  const onMovePiece = (newPiece) => {
+    setGame(movePiece(game, newPiece))
 
     /* Deselect the piece. */
     setActivePiece(undefined)
@@ -311,7 +307,7 @@ function Game () {
           <PieceMover
             pieces={game.pieces}
             piece={activePiece}
-            onChange={(newPiece) => onMovePiece(activePiece, newPiece)}
+            onChange={(newPiece) => onMovePiece(newPiece)}
           />
         )}
       </group>
