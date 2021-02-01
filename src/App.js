@@ -3,7 +3,7 @@ import { Canvas, useThree, useFrame, useLoader } from 'react-three-fiber'
 import { a, animated, useSpring } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { BufferGeometry } from 'three'
+import { PlaneGeometry, BufferGeometry } from 'three'
 
 /** Camera. */
 function Camera (props) {
@@ -101,6 +101,39 @@ function ChessCamera (props) {
   )
 }
 
+function Board (props) {
+  const colors = props.colors
+  const geometry = useMemo(() => new PlaneGeometry(1, 1), [])
+  const materials = useMemo(() => colors.map(color => (
+    <meshStandardMaterial
+      key={color}
+      color={color}
+      metalness={0.0}
+      roughness={0.2}
+    />
+  )), [colors])
+  const meshes = []
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 8; j++) {
+      meshes.push(
+        <mesh
+          key={i + j * 8}
+          geometry={geometry}
+          rotation-x={-Math.PI / 2}
+          position={[i, 0, j]}
+        >
+          {materials[(i + j) % 2]}
+        </mesh>
+      )
+    }
+  }
+  return (
+    <group {...props}>
+      {meshes}
+    </group>
+  )
+}
+
 /**
  * A clickable slot on the chessboard.
  *
@@ -108,15 +141,12 @@ function ChessCamera (props) {
  *  - coord - the position on the board
  */
 function Slot (props) {
-  const mesh = useRef()
-
   // Set up state for the hovered and active state
   const [hovered, setHover] = useState(false)
 
   return (
     <mesh
       {...props}
-      ref={mesh}
       position={[props.coord[0], 0, props.coord[1]]}
       onPointerOver={(event) => setHover(true)}
       onPointerOut={(event) => setHover(false)}
@@ -165,11 +195,14 @@ function Piece (props) {
       onPointerOut={(event) => setHover(false)}
       onClick={!disabled && onClick}
     >
-      <meshStandardMaterial color={
-        active
-          ? 'orange'
-          : (!disabled && hovered ? 'hotpink' : piece.color)
-      }
+      <meshStandardMaterial
+        color={
+              active
+                ? 'orange'
+                : (!disabled && hovered ? 'hotpink' : piece.color)
+            }
+        metalness={0.0}
+        roughness={0.2}
       />
     </a.mesh>
   )
@@ -415,6 +448,7 @@ function Game () {
       <group
         position={[-3.5, 0, -3.5]}
       >
+        <Board colors={['black', 'white']} />
         {game.pieces.map((piece, i) => (
           <Piece
             key={piece.id}
