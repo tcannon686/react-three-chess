@@ -17,7 +17,7 @@ function Board (props) {
       key={color}
       color={color}
       metalness={0.0}
-      roughness={0.2}
+      roughness={0.3}
     />
   )), [colors])
   const meshes = []
@@ -105,7 +105,7 @@ function Piece (props) {
                 : (!disabled && hovered ? 'hotpink' : piece.color)
             }
         metalness={0.0}
-        roughness={0.2}
+        roughness={0.3}
       />
     </a.mesh>
   )
