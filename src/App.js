@@ -1,6 +1,6 @@
 import React, { Suspense, useMemo, useState } from 'react'
 import { Canvas, useLoader } from 'react-three-fiber'
-import { a, useSpring } from 'react-spring/three'
+import { a, useSpring, useTransition } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
@@ -53,15 +53,14 @@ function Slot (props) {
   const [hovered, setHover] = useState(false)
 
   return (
-    <mesh
+    <a.mesh
       {...props}
-      position={[props.coord[0], 0, props.coord[1]]}
       onPointerOver={(event) => setHover(true)}
       onPointerOut={(event) => setHover(false)}
     >
-      <boxBufferGeometry args={[1, 0.1, 1]} />
+      <boxBufferGeometry args={[0.75, 0.1, 0.75]} />
       <meshStandardMaterial color={hovered ? 'hotpink' : 'orange'} />
-    </mesh>
+    </a.mesh>
   )
 }
 
@@ -130,17 +129,34 @@ function PieceMover (props) {
     onChange
   } = props
 
+  const transitions = useTransition(
+    getValidMoves(game, piece),
+    null,
+    {
+      config: {
+        tension: 400,
+        mass: 1.5
+      },
+      trail: 25,
+      from: { scale: [0, 0, 0] },
+      enter: { scale: [1, 1, 1] },
+      leave: { scale: [0, 0, 0] }
+    }
+  )
+
   return (
     <>
-      {getValidMoves(game, piece).map((coord, i) => (
+      {transitions.map(({ item, key, props }) => (
         <Slot
-          key={i}
-          coord={coord}
+          {...props}
+          key={key}
+          coord={item}
           onClick={() => onChange({
             ...piece,
-            coord,
+            coord: item,
             hasMoved: true
           })}
+          position={[item[0], 0.05, item[1]]}
         />
       ))}
     </>

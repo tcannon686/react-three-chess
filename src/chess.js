@@ -62,7 +62,7 @@ export function movePiece (game, piece, moveCount = 1) {
 }
 
 export function getValidMoves (game, piece) {
-  let possibleCoords = []
+  const possibleCoords = []
 
   const direction = piece.color === 'white' ? 1 : -1
 
@@ -92,7 +92,6 @@ export function getValidMoves (game, piece) {
    * radians.
    */
   const makeAngleAttack = (count, offset = 0, max = Infinity) => {
-    possibleCoords = []
     for (let i = 0; i < count; i++) {
       const dx = Math.sign(Math.round(Math.cos(i * 2 * Math.PI / count + offset)))
       const dy = Math.sign(Math.round(Math.sin(i * 2 * Math.PI / count + offset)))
@@ -145,13 +144,13 @@ export function getValidMoves (game, piece) {
       }
     }
   } else if (piece.type === 'queen') {
-    makeAngleAttack(10)
+    makeAngleAttack(8)
   } else if (piece.type === 'rook') {
     makeAngleAttack(4)
   } else if (piece.type === 'bishop') {
     makeAngleAttack(4, Math.PI / 4)
   } else if (piece.type === 'king') {
-    makeAngleAttack(10, 0, 1)
+    makeAngleAttack(8, 0, 1)
   } else if (piece.type === 'knight') {
     [[1, 2], [2, 1]].forEach((pair) => {
       makeAttack(piece.coord[0] + pair[0], piece.coord[1] + pair[1])
