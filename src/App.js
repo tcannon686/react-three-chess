@@ -1,13 +1,16 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { Canvas, useThree, useFrame } from 'react-three-fiber'
+import React, { Suspense, useMemo, useRef, useState, useEffect } from 'react'
+import { Canvas, useThree, useFrame, useLoader } from 'react-three-fiber'
 import { a, animated, useSpring } from 'react-spring/three'
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { BufferGeometry } from 'three'
 
 /** Camera. */
 function Camera (props) {
   const ref = useRef()
   const { setDefaultCamera } = useThree()
   // Make the camera known to the system
-  useEffect(() => setDefaultCamera(ref.current), [])
+  useEffect(() => setDefaultCamera(ref.current), [setDefaultCamera])
   // Update it every frame
   useFrame(() => ref.current.updateMatrixWorld())
   return <perspectiveCamera ref={ref} {...props} />
@@ -155,13 +158,13 @@ function Piece (props) {
       {...meshProps}
       ref={mesh}
       position-x={x}
-      position-y={0.5}
+      position-y={0}
       position-z={z}
+      rotation-y={piece.color === 'black' ? 0 : Math.PI}
       onPointerOver={(event) => setHover(true)}
       onPointerOut={(event) => setHover(false)}
       onClick={!disabled && onClick}
     >
-      <boxBufferGeometry args={[0.5, 0.5, 0.5]} />
       <meshStandardMaterial color={
         active
           ? 'orange'
@@ -356,8 +359,41 @@ function movePiece (game, oldPiece, newPiece, moveCount = 1) {
   }
 }
 
-function App () {
+function useGeometries () {
+  const pieces = useMemo(() => [
+    'bishop',
+    'king',
+    'knight',
+    'pawn',
+    'queen',
+    'rook'
+  ], [])
+  const models = useLoader(
+    GLTFLoader,
+    pieces.map((x) => `models/${x}.glb`))
+  return useMemo(() => {
+    const ret = {}
+    pieces.forEach((x, i) => {
+      const geometry = new BufferGeometry()
+
+      const geometries = []
+      models[i].scene.traverse((object) => {
+        if (object.geometry) {
+          geometries.push(object.geometry)
+        }
+      })
+      geometry.copy(BufferGeometryUtils.mergeBufferGeometries(geometries))
+
+      ret[x] = geometry
+    })
+    return ret
+  }, [models, pieces])
+}
+
+function Game () {
   const [game, setGame] = useState(makeGame())
+
+  const geometries = useGeometries()
 
   /* The index in the pieces array of the currently selected piece. */
   const [activePiece, setActivePiece] = useState()
@@ -373,33 +409,42 @@ function App () {
 
   return (
     <>
-      <Canvas>
-        <ChessCamera turn={turn} />
-        <ambientLight />
-        <pointLight position={[10, 10, 10]} />
-        <group
-          position={[-3.5, 0, -3.5]}
-        >
-          {game.pieces.map((piece, i) => (
-            <Piece
-              key={piece.id}
-              game={game}
-              piece={piece}
-              onClick={() => setActivePiece(piece)}
-              active={piece === activePiece}
-              disabled={turn !== piece.color}
-            />
-          ))}
-          {activePiece !== undefined && (
-            <PieceMover
-              pieces={game.pieces}
-              piece={activePiece}
-              onChange={(newPiece) => onMovePiece(activePiece, newPiece)}
-            />
-          )}
-        </group>
-      </Canvas>
+      <ChessCamera turn={turn} />
+      <ambientLight intensity={0.25} />
+      <pointLight position={[0, 10, 0]} />
+      <group
+        position={[-3.5, 0, -3.5]}
+      >
+        {game.pieces.map((piece, i) => (
+          <Piece
+            key={piece.id}
+            geometry={geometries[piece.type]}
+            game={game}
+            piece={piece}
+            onClick={() => setActivePiece(piece)}
+            active={piece === activePiece}
+            disabled={turn !== piece.color}
+          />
+        ))}
+        {activePiece !== undefined && (
+          <PieceMover
+            pieces={game.pieces}
+            piece={activePiece}
+            onChange={(newPiece) => onMovePiece(activePiece, newPiece)}
+          />
+        )}
+      </group>
     </>
+  )
+}
+
+function App () {
+  return (
+    <Canvas>
+      <Suspense fallback={<group />}>
+        <Game />
+      </Suspense>
+    </Canvas>
   )
 }
 
