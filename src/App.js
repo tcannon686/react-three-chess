@@ -1,106 +1,14 @@
-import React, { Suspense, useMemo, useRef, useState, useEffect } from 'react'
-import { Canvas, useThree, useFrame, useLoader } from 'react-three-fiber'
-import { a, animated, useSpring } from 'react-spring/three'
+import React, { Suspense, useMemo, useRef, useState } from 'react'
+import { Canvas, useLoader } from 'react-three-fiber'
+import { a, useSpring } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
 
-/** Camera. */
-function Camera (props) {
-  const ref = useRef()
-  const { setDefaultCamera } = useThree()
-  // Make the camera known to the system
-  useEffect(() => setDefaultCamera(ref.current), [setDefaultCamera])
-  // Update it every frame
-  useFrame(() => ref.current.updateMatrixWorld())
-  return <perspectiveCamera ref={ref} {...props} />
-}
+import { ChessCamera } from './camera'
+import { makeGame, movePiece } from './chess'
 
-/**
- * A component that looks at a target in world space.
- *
- * Props:
- *  - children
- *  - target - An array of 3 numbers representing the target in world space
- */
-function LookAt (props) {
-  const {
-    children,
-    target,
-    ...rest
-  } = props
-
-  const ref = useRef()
-  useFrame(() => {
-    ref.current.lookAt(...target)
-  })
-
-  return (
-    <group ref={ref} {...rest}>
-      {children}
-    </group>
-  )
-}
-
-/**
- * A component that rotates around a target.
- *
- * Props:
- *  - children
- *  - target - An array of 3 numbers representing the target in world space
- *  - angleX - The angle around the target
- *  - angleY - The vertical angle around the target
- */
-function Orbiter (props) {
-  const {
-    children,
-    target,
-    angleX,
-    angleY,
-    distance
-  } = props
-
-  return (
-    <LookAt
-      target={target}
-      position={[
-        target[0] + Math.sin(angleX || 0) * distance,
-        target[1] + Math.sin(angleY || 0) * distance,
-        target[2] + Math.cos(angleX || 0) * distance
-      ]}
-    >
-      {children}
-    </LookAt>
-  )
-}
-
-const AnimatedOrbiter = animated(Orbiter)
-
-function ChessCamera (props) {
-  const {
-    turn,
-    ...cameraProps
-  } = props
-
-  const targetAngle = turn === 'black' ? 0 : Math.PI
-
-  const { angleX } = useSpring({
-    angleX: targetAngle,
-    delay: 1000
-  })
-
-  return (
-    <AnimatedOrbiter
-      target={[0, 0, 0]}
-      angleX={angleX || targetAngle}
-      angleY={Math.PI / 4}
-      distance={7}
-    >
-      <Camera rotation={[0, Math.PI, 0]} {...cameraProps} />
-    </AnimatedOrbiter>
-  )
-}
-
+/** A chess board. */
 function Board (props) {
   const colors = props.colors
   const geometry = useMemo(() => new PlaneGeometry(1, 1), [])
@@ -329,67 +237,6 @@ function PieceMover (props) {
       ))}
     </>
   )
-}
-
-/**
- * Helper function to create the pieces on the board.
- */
-function createPieces () {
-  /* Basic chessboard layout. */
-  const board = [
-    'R', 'k', 'B', 'Q', 'K', 'B', 'k', 'R',
-    'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-    'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
-    'R', 'k', 'B', 'Q', 'K', 'B', 'k', 'R'
-  ]
-
-  const shortToType = {
-    R: 'rook',
-    k: 'knight',
-    P: 'pawn',
-    K: 'king',
-    B: 'bishop',
-    Q: 'queen'
-  }
-
-  /* Create the pieces. */
-  return board.map((t, i) => ({
-    id: i,
-    type: shortToType[t],
-    color: Math.floor(i / 8) > 4 ? 'black' : 'white',
-    coord: [i % 8, Math.floor(i / 8)]
-  })).filter((x) => x.type)
-}
-
-/** Creates a new game (match). */
-function makeGame () {
-  return {
-    pieces: createPieces(),
-    moveCount: 0
-  }
-}
-
-/**
- * Moves a piece on the board and returns the new game state. The moveCount for
- * the game is incremented by moveCount, which is default 1.
- */
-function movePiece (game, oldPiece, newPiece, moveCount = 1) {
-  const pieces = game.pieces.filter(x => (
-    (x.coord[0] !== newPiece.coord[0] ||
-      x.coord[1] !== newPiece.coord[1]) &&
-    x !== oldPiece
-  ))
-  pieces.push(newPiece)
-
-  return {
-    ...game,
-    pieces,
-    moveCount: game.moveCount + moveCount
-  }
 }
 
 function useGeometries () {
