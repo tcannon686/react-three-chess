@@ -41,23 +41,63 @@ export function makeGame () {
 }
 
 /**
- * Moves a piece on the board and returns the new game state. The moveCount for
- * the game is incremented by moveCount, which is default 1.
+ * Updates a piece on the board and returns the new game state. The moveCount
+ * for the game is incremented by moveCount, which is default 1.
  *
  * The previous piece is removed based on its ID.
  */
-export function movePiece (game, piece, moveCount = 1) {
-  const pieces = game.pieces.filter(x => (
-    (x.coord[0] !== piece.coord[0] ||
-      x.coord[1] !== piece.coord[1]) &&
-    x.id !== piece.id
-  ))
-  pieces.push(piece)
+export function updatePiece (game, piece, moveCount = 1) {
+  /* Determine if the piece castled. */
+  const oldPiece = game.pieces.find(x => x.id === piece.id)
+  const didCastle = (
+    piece.type === 'king' &&
+    Math.abs(piece.coord[0] - oldPiece.coord[0]) === 2
+  )
 
-  return {
-    ...game,
-    pieces,
-    moveCount: game.moveCount + moveCount
+  if (didCastle) {
+    const direction = Math.sign(piece.coord[0] - oldPiece.coord[0])
+
+    /* Find corresponding rook. */
+    const rook = game.pieces.find(x => (
+      x.type === 'rook' &&
+      x.color === piece.color &&
+      x.coord[1] === piece.coord[1] &&
+      !x.hasMoved &&
+      Math.sign(x.coord[0] - oldPiece.coord[0]) === direction
+    ))
+
+    /* Remove old rook and king. */
+    const pieces = game.pieces.filter(x => (
+      (x.coord[0] !== piece.coord[0] ||
+        x.coord[1] !== piece.coord[1]) &&
+      x.id !== piece.id &&
+      x.id !== rook.id
+    ))
+
+    pieces.push(piece)
+    pieces.push({
+      ...rook,
+      hasMoved: true,
+      coord: [oldPiece.coord[0] + direction, piece.coord[1]]
+    })
+
+    return {
+      ...game,
+      pieces,
+      moveCount: game.moveCount + moveCount
+    }
+  } else {
+    const pieces = game.pieces.filter(x => (
+      (x.coord[0] !== piece.coord[0] ||
+        x.coord[1] !== piece.coord[1]) &&
+      x.id !== piece.id
+    ))
+    pieces.push(piece)
+    return {
+      ...game,
+      pieces,
+      moveCount: game.moveCount + moveCount
+    }
   }
 }
 
@@ -65,7 +105,49 @@ export function getPieceAtPosition (game, x, y) {
   return game.pieces.filter(p => p.coord[0] === x && p.coord[1] === y)[0]
 }
 
-export function getValidMoves (game, piece) {
+/**
+ * Returns a list of pieces that can attack the given piece.
+ */
+export function getVulnerabilities (game, piece) {
+  return game.pieces.filter(x => (
+    x.color !== piece.color &&
+    getValidMoves(game, x, true).some(x => (
+      x[0] === piece.coord[0] && x[1] === piece.coord[1]
+    ))
+  ))
+}
+
+/**
+ * Returns true if the given piece is vulnerable.
+ */
+export function isVulnerable (game, piece) {
+  return getVulnerabilities(game, piece).length > 0
+}
+
+/**
+ * Returns true if the given piece can castle.
+ */
+export function canCastle (game, king, rook) {
+  return (
+    king.type === 'king' &&
+    rook.type === 'rook' &&
+    !king.hasMoved &&
+    !rook.hasMoved &&
+    game.pieces.filter(x => (
+      x.coord[1] === king.coord[1] &&
+      x.coord[0] > Math.min(king.coord[0], rook.coord[0]) &&
+      x.coord[0] < Math.max(king.coord[0], rook.coord[0])
+    )).length === 0 &&
+    !isVulnerable(game, king)
+  )
+}
+
+/**
+ * Returns the possible positions the given piece can move to.
+ *
+ * If attacksOnly is true, only return attacks.
+ */
+export function getValidMoves (game, piece, attacksOnly = false) {
   const possibleCoords = []
 
   const direction = piece.color === 'white' ? 1 : -1
@@ -81,7 +163,13 @@ export function getValidMoves (game, piece) {
     const inBounds = x >= 0 && y >= 0 && x < 8 && y < 8
     const hittingFriendly = (hitPiece && hitPiece.color === piece.color)
     if (inBounds && !hittingFriendly) {
-      possibleCoords.push([x, y])
+      if (attacksOnly) {
+        if (hitPiece && hitPiece.color !== piece.color) {
+          possibleCoords.push([x, y])
+        }
+      } else {
+        possibleCoords.push([x, y])
+      }
       return true
     }
     return false
@@ -97,22 +185,16 @@ export function getValidMoves (game, piece) {
       const dy = Math.sign(Math.round(Math.sin(i * 2 * Math.PI / count + offset)))
       let [x, y] = piece.coord
 
-      let hitPieceCount = 0
       for (let j = 0; j < max; j++) {
         x += dx
         y += dy
-
-        /* You can only hit one piece. */
-        hitPieceCount += game.pieces
-          .filter(p => p.coord[0] === x && p.coord[1] === y)
-          .length
 
         if (!makeAttack(x, y)) {
           break
         }
 
         /* Stop iterating if we hit a piece. */
-        if (hitPieceCount > 0) {
+        if (getPieceAtPosition(game, x, y)) {
           break
         }
       }
@@ -151,6 +233,20 @@ export function getValidMoves (game, piece) {
     makeAngleAttack(4, Math.PI / 4)
   } else if (piece.type === 'king') {
     makeAngleAttack(8, 0, 1)
+
+    /* Handle castling. */
+    const rooks = game.pieces.filter(x => (
+      x.type === 'rook' && x.color === piece.color
+    )).sort((a, b) => a.coord[0] < b.coord[0])
+
+    rooks.forEach(rook => {
+      if (!attacksOnly && canCastle(game, piece, rook)) {
+        makeAttack(
+          piece.coord[0] + (rook.coord[0] < piece.coord[0] ? -2 : 2),
+          piece.coord[1]
+        )
+      }
+    })
   } else if (piece.type === 'knight') {
     [[1, 2], [2, 1]].forEach((pair) => {
       makeAttack(piece.coord[0] + pair[0], piece.coord[1] + pair[1])

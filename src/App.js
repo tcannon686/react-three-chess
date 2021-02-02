@@ -8,7 +8,7 @@ import { PlaneGeometry, BufferGeometry } from 'three'
 import { ChessCamera } from './camera'
 import {
   makeGame,
-  movePiece,
+  updatePiece,
   getValidMoves,
   getPieceAtPosition
 } from './chess'
@@ -224,7 +224,7 @@ function Game () {
   const turn = game.moveCount % 2 ? 'black' : 'white'
 
   const onMovePiece = (newPiece) => {
-    setGame(movePiece(game, newPiece))
+    setGame(updatePiece(game, newPiece))
 
     /* Deselect the piece. */
     setActivePiece(undefined)
