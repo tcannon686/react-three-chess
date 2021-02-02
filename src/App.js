@@ -6,7 +6,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
 
 import { ChessCamera } from './camera'
-import { makeGame, movePiece, getValidMoves } from './chess'
+import {
+  makeGame,
+  movePiece,
+  getValidMoves,
+  getPieceAtPosition
+} from './chess'
 
 /** A chess board. */
 function Board (props) {
@@ -49,17 +54,27 @@ function Board (props) {
  *  - coord - the position on the board
  */
 function Slot (props) {
+  const {
+    attack,
+    ...meshProps
+  } = props
   // Set up state for the hovered and active state
   const [hovered, setHover] = useState(false)
+  const color = attack
+    ? (hovered ? 'red' : 'orangered')
+    : (hovered ? 'hotpink' : 'orange')
 
   return (
     <a.mesh
-      {...props}
+      {...meshProps}
       onPointerOver={(event) => setHover(true)}
       onPointerOut={(event) => setHover(false)}
     >
       <boxBufferGeometry args={[0.75, 0.1, 0.75]} />
-      <meshStandardMaterial color={hovered ? 'hotpink' : 'orange'} />
+      <meshStandardMaterial
+        color={color}
+        emissive={color}
+      />
     </a.mesh>
   )
 }
@@ -99,11 +114,12 @@ function Piece (props) {
       onClick={!disabled && onClick}
     >
       <meshStandardMaterial
-        color={
-              active
-                ? 'orange'
-                : (!disabled && hovered ? 'hotpink' : piece.color)
-            }
+        color={piece.color}
+        emissive={
+          active
+            ? 'orange'
+            : (!disabled && hovered ? 'hotpink' : '#000000')
+        }
         metalness={0.0}
         roughness={0.3}
       />
@@ -157,6 +173,9 @@ function PieceMover (props) {
             hasMoved: true
           })}
           position={[item[0], 0.05, item[1]]}
+          attack={(x => x && x.color !== piece.color)(
+            getPieceAtPosition(game, ...item)
+          )}
         />
       ))}
     </>
@@ -214,7 +233,7 @@ function Game () {
   return (
     <>
       <ChessCamera turn={turn} />
-      <ambientLight intensity={0.25} />
+      <ambientLight intensity={0.05} />
       <pointLight position={[0, 10, 0]} />
       <group
         position={[-3.5, 0, -3.5]}

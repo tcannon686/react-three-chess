@@ -61,14 +61,14 @@ export function movePiece (game, piece, moveCount = 1) {
   }
 }
 
+export function getPieceAtPosition (game, x, y) {
+  return game.pieces.filter(p => p.coord[0] === x && p.coord[1] === y)[0]
+}
+
 export function getValidMoves (game, piece) {
   const possibleCoords = []
 
   const direction = piece.color === 'white' ? 1 : -1
-
-  const getPieceAtPosition = (x, y) => (
-    game.pieces.filter(p => p.coord[0] === x && p.coord[1] === y)[0]
-  )
 
   /*
    * Creates a place to attack at the given position if possible. Returns true
@@ -77,7 +77,7 @@ export function getValidMoves (game, piece) {
    */
   const makeAttack = (x, y) => {
     /* Find any pieces at the position. */
-    const hitPiece = getPieceAtPosition(x, y)
+    const hitPiece = getPieceAtPosition(game, x, y)
     const inBounds = x >= 0 && y >= 0 && x < 8 && y < 8
     const hittingFriendly = (hitPiece && hitPiece.color === piece.color)
     if (inBounds && !hittingFriendly) {
@@ -125,10 +125,10 @@ export function getValidMoves (game, piece) {
     const left = [piece.coord[0] - 1, piece.coord[1] + direction]
     const right = [piece.coord[0] + 1, piece.coord[1] + direction]
 
-    const leftPiece = getPieceAtPosition(...left)
-    const rightPiece = getPieceAtPosition(...right)
-    const forwardPiece = getPieceAtPosition(...forward)
-    const forwardPiece2 = getPieceAtPosition(...forward2)
+    const leftPiece = getPieceAtPosition(game, ...left)
+    const rightPiece = getPieceAtPosition(game, ...right)
+    const forwardPiece = getPieceAtPosition(game, ...forward)
+    const forwardPiece2 = getPieceAtPosition(game, ...forward2)
 
     if (leftPiece && leftPiece.color !== piece.color) {
       makeAttack(...left)
