@@ -4,19 +4,19 @@
 function createPieces () {
   /* Basic chessboard layout. */
   const board = [
-    'R', 'k', 'B', 'Q', 'K', 'B', 'k', 'R',
+    'R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R',
     'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
-    'R', 'k', 'B', 'Q', 'K', 'B', 'k', 'R'
+    'R', 'N', 'B', 'K', 'Q', 'B', 'N', 'R'
   ]
 
   const shortToType = {
     R: 'rook',
-    k: 'knight',
+    N: 'knight',
     P: 'pawn',
     K: 'king',
     B: 'bishop',
