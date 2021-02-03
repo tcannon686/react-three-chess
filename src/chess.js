@@ -143,6 +143,18 @@ export function canCastle (game, king, rook) {
 }
 
 /**
+ * Returns true if the given piece can promote (i.e. it is a pawn and at the end
+ * of the board).
+ */
+export function canPromote (game, piece) {
+  return (
+    piece.type === 'pawn' &&
+    ((piece.color === 'white' && piece.coord[1] === 7) ||
+      (piece.color === 'black' && piece.coord[1] === 0))
+  )
+}
+
+/**
  * Returns the possible positions the given piece can move to.
  *
  * If attacksOnly is true, only return attacks.
@@ -257,3 +269,12 @@ export function getValidMoves (game, piece, attacksOnly = false) {
   }
   return possibleCoords
 }
+
+export const PIECE_NAMES = [
+  'bishop',
+  'king',
+  'knight',
+  'pawn',
+  'queen',
+  'rook'
+]
