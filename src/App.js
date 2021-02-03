@@ -174,7 +174,7 @@ function PieceMover (props) {
           onClick={() => onUpdate({
             ...piece,
             coord: item,
-            hasMoved: true
+            moveCount: piece.moveCount + 1
           })}
           position={[item[0], 0.05, item[1]]}
           attack={(x => x && x.color !== piece.color)(

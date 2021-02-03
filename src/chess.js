@@ -27,6 +27,7 @@ function createPieces () {
   return board.map((t, i) => ({
     id: i,
     type: shortToType[t],
+    moveCount: 0,
     color: Math.floor(i / 8) > 4 ? 'black' : 'white',
     coord: [i % 8, Math.floor(i / 8)]
   })).filter((x) => x.type)
@@ -62,7 +63,7 @@ export function updatePiece (game, piece, moveCount = 1) {
       x.type === 'rook' &&
       x.color === piece.color &&
       x.coord[1] === piece.coord[1] &&
-      !x.hasMoved &&
+      !x.moveCount &&
       Math.sign(x.coord[0] - oldPiece.coord[0]) === direction
     ))
 
@@ -77,7 +78,7 @@ export function updatePiece (game, piece, moveCount = 1) {
     pieces.push(piece)
     pieces.push({
       ...rook,
-      hasMoved: true,
+      moveCount: rook.moveCount + 1,
       coord: [oldPiece.coord[0] + direction, piece.coord[1]]
     })
 
@@ -131,8 +132,8 @@ export function canCastle (game, king, rook) {
   return (
     king.type === 'king' &&
     rook.type === 'rook' &&
-    !king.hasMoved &&
-    !rook.hasMoved &&
+    !king.moveCount &&
+    !rook.moveCount &&
     game.pieces.filter(x => (
       x.coord[1] === king.coord[1] &&
       x.coord[0] > Math.min(king.coord[0], rook.coord[0]) &&
@@ -249,7 +250,7 @@ export function getValidMoves (game, piece, attacksOnly = false) {
     if (!forwardPiece) {
       makeAttack(...forward)
 
-      if (!forwardPiece2 && !piece.hasMoved) {
+      if (!forwardPiece2 && !piece.moveCount) {
         makeAttack(...forward2)
       }
     }
