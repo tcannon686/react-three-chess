@@ -12,6 +12,8 @@ import {
   getValidMoves,
   getPieceAtPosition,
   canPromote,
+  canMove,
+  isInCheck,
   PIECE_NAMES
 } from './chess'
 
@@ -307,6 +309,8 @@ function Game () {
 
   const turn = game.moveCount % 2 ? 'black' : 'white'
 
+  const gameOver = canMove(game, turn)
+
   const onUpdate = (newPiece) => {
     setGame(updatePiece(game, newPiece))
 
@@ -316,48 +320,59 @@ function Game () {
 
   return (
     <>
-      <ChessCamera turn={turn} />
-      <ambientLight intensity={0.05} />
-      <pointLight position={[0, 10, 0]} />
-      <group
-        position={[-3.5, 0, -3.5]}
-      >
-        <Board colors={['black', 'white']} />
-        {game.pieces.map((piece, i) => (
-          <Piece
-            key={piece.id}
-            geometry={geometries[piece.type]}
-            game={game}
-            piece={piece}
-            onClick={() => setActivePiece(piece)}
-            active={piece === activePiece}
-            disabled={turn !== piece.color}
-          />
-        ))}
-        {activePiece !== undefined && (
-          <PieceMover
-            game={game}
-            piece={activePiece}
-            onUpdate={onUpdate}
-          />
-        )}
-        <PromoteMenu
-          game={game}
-          piece={activePiece}
-          onUpdate={onUpdate}
-        />
-      </group>
+      {!gameOver
+        ? (
+          <Canvas>
+            <ChessCamera turn={turn} />
+            <ambientLight intensity={0.05} />
+            <pointLight position={[0, 10, 0]} />
+            <group
+              position={[-3.5, 0, -3.5]}
+            >
+              <Board colors={['black', 'white']} />
+              {game.pieces.map((piece, i) => (
+                <Piece
+                  key={piece.id}
+                  geometry={geometries[piece.type]}
+                  game={game}
+                  piece={piece}
+                  onClick={() => setActivePiece(piece)}
+                  active={piece === activePiece}
+                  disabled={turn !== piece.color}
+                />
+              ))}
+              {activePiece !== undefined && (
+                <PieceMover
+                  game={game}
+                  piece={activePiece}
+                  onUpdate={onUpdate}
+                />
+              )}
+              <PromoteMenu
+                game={game}
+                piece={activePiece}
+                onUpdate={onUpdate}
+              />
+            </group>
+          </Canvas>
+          )
+        : (
+          <p>
+            {
+                (isInCheck(game, turn) ? 'Checkmate: ' : 'Stalemate: ') +
+                turn + ' loses!'
+              }
+          </p>
+          )}
     </>
   )
 }
 
 function App () {
   return (
-    <Canvas>
-      <Suspense fallback={<group />}>
-        <Game />
-      </Suspense>
-    </Canvas>
+    <Suspense fallback={<p> Loading... </p>}>
+      <Game />
+    </Suspense>
   )
 }
 

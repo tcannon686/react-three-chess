@@ -291,6 +291,13 @@ export function isInCheck (game, color) {
   return isVulnerable(game, king)
 }
 
+/** Returns true if the given color can move. */
+export function canMove (game, color) {
+  return game.pieces.filter(x => x.color === color).every(x => (
+    getValidMoves(game, x).length === 0
+  ))
+}
+
 export const PIECE_NAMES = [
   'bishop',
   'king',
