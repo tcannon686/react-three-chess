@@ -163,6 +163,7 @@ export function getValidMoves (game, piece, attacksOnly = false) {
   const possibleCoords = []
 
   const direction = piece.color === 'white' ? 1 : -1
+  const check = !attacksOnly && isInCheck(game, piece.color)
 
   /*
    * Creates a place to attack at the given position if possible. Returns true
@@ -177,6 +178,21 @@ export function getValidMoves (game, piece, attacksOnly = false) {
     if (inBounds && !hittingFriendly) {
       if (attacksOnly) {
         if (hitPiece && hitPiece.color !== piece.color) {
+          possibleCoords.push([x, y])
+        }
+      } else if (check) {
+        /*
+         * If you are in check, you can only make moves that will get you out of
+         * check.
+         */
+        const movedPiece = {
+          ...piece,
+          coord: [x, y]
+        }
+        const stillInCheck = isInCheck(
+          updatePiece(game, movedPiece),
+          piece.color)
+        if (!stillInCheck) {
           possibleCoords.push([x, y])
         }
       } else {
@@ -268,6 +284,11 @@ export function getValidMoves (game, piece, attacksOnly = false) {
     })
   }
   return possibleCoords
+}
+
+export function isInCheck (game, color) {
+  const king = game.pieces.find(x => x.color === color && x.type === 'king')
+  return isVulnerable(game, king)
 }
 
 export const PIECE_NAMES = [
