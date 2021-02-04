@@ -54,9 +54,15 @@ export function updatePiece (game, piece, moveCount = 1) {
     piece.type === 'king' &&
     Math.abs(piece.coord[0] - oldPiece.coord[0]) === 2
   )
+  const prevState = {
+    ...game
+  }
+  delete prevState.prevState
+
+  const enPassantPiece = getEnPassantPiece(game, oldPiece, ...piece.coord)
 
   if (didCastle) {
-    const direction = Math.sign(piece.coord[0] - oldPiece.coord[0])
+    const oldDir = Math.sign(piece.coord[0] - oldPiece.coord[0])
 
     /* Find corresponding rook. */
     const rook = game.pieces.find(x => (
@@ -64,7 +70,7 @@ export function updatePiece (game, piece, moveCount = 1) {
       x.color === piece.color &&
       x.coord[1] === piece.coord[1] &&
       !x.moveCount &&
-      Math.sign(x.coord[0] - oldPiece.coord[0]) === direction
+      Math.sign(x.coord[0] - oldPiece.coord[0]) === oldDir
     ))
 
     /* Remove old rook and king. */
@@ -79,13 +85,26 @@ export function updatePiece (game, piece, moveCount = 1) {
     pieces.push({
       ...rook,
       moveCount: rook.moveCount + 1,
-      coord: [oldPiece.coord[0] + direction, piece.coord[1]]
+      coord: [oldPiece.coord[0] + oldDir, piece.coord[1]]
     })
 
     return {
       ...game,
       pieces,
-      moveCount: game.moveCount + moveCount
+      moveCount: game.moveCount + moveCount,
+      prevState
+    }
+  } else if (enPassantPiece) {
+    /* Handle en passant. */
+    const pieces = game.pieces.filter(x => (
+      x.id !== piece.id && x.id !== enPassantPiece.id
+    ))
+    pieces.push(piece)
+    return {
+      ...game,
+      pieces,
+      moveCount: game.moveCount + moveCount,
+      prevState
     }
   } else {
     const pieces = game.pieces.filter(x => (
@@ -97,9 +116,54 @@ export function updatePiece (game, piece, moveCount = 1) {
     return {
       ...game,
       pieces,
-      moveCount: game.moveCount + moveCount
+      moveCount: game.moveCount + moveCount,
+      prevState
     }
   }
+}
+
+/**
+ * Returns +1 or -1 depending on the direction the piece is facing.
+ */
+function getDirection (game, piece) {
+  return piece.color === 'white' ? 1 : -1
+}
+
+/**
+ * Returns the piece that would be attacked by the given pawn at the given
+ * coordinates in an en passant attack. If no piece is available, returns
+ * undefined.
+ */
+export function getEnPassantPiece (game, piece, x, y) {
+  if (piece.type === 'pawn' && game.prevState) {
+    const direction = getDirection(game, piece)
+
+    const spot1 = [x, y - direction]
+    const spot2 = [x, y + direction]
+
+    const cur = getPieceAtPosition(game, ...spot1)
+    const prev = getPieceAtPosition(game.prevState, ...spot2)
+
+    if (
+      cur && prev &&
+      cur.id === prev.id &&
+      prev.type === 'pawn' &&
+      prev.color !== piece.color
+    ) {
+      return cur
+    }
+  }
+}
+
+/**
+ * Returns true if the given piece can attack the piece at the given position.
+ */
+export function canAttack (game, piece, x, y) {
+  const victim = getPieceAtPosition(game, x, y)
+  return (
+    (victim && victim.color !== piece.color) ||
+    getEnPassantPiece(game, piece, x, y)
+  )
 }
 
 export function getPieceAtPosition (game, x, y) {
@@ -163,7 +227,7 @@ export function canPromote (game, piece) {
 export function getValidMoves (game, piece, attacksOnly = false) {
   const possibleCoords = []
 
-  const direction = piece.color === 'white' ? 1 : -1
+  const direction = getDirection(game, piece)
   const check = !attacksOnly && isInCheck(game, piece.color)
 
   /*
@@ -241,12 +305,26 @@ export function getValidMoves (game, piece, attacksOnly = false) {
     const forwardPiece = getPieceAtPosition(game, ...forward)
     const forwardPiece2 = getPieceAtPosition(game, ...forward2)
 
-    if (leftPiece && leftPiece.color !== piece.color) {
-      makeAttack(...left)
+    if (leftPiece) {
+      if (leftPiece.color !== piece.color) {
+        makeAttack(...left)
+      }
+    } else {
+      if (getEnPassantPiece(game, piece, ...left)) {
+        makeAttack(...left)
+      }
     }
-    if (rightPiece && rightPiece.color !== piece.color) {
-      makeAttack(...right)
+
+    if (rightPiece) {
+      if (rightPiece.color !== piece.color) {
+        makeAttack(...right)
+      }
+    } else {
+      if (getEnPassantPiece(game, piece, ...right)) {
+        makeAttack(...right)
+      }
     }
+
     if (!forwardPiece) {
       makeAttack(...forward)
 

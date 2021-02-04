@@ -10,10 +10,10 @@ import {
   makeGame,
   updatePiece,
   getValidMoves,
-  getPieceAtPosition,
   canPromote,
   canMove,
   isInCheck,
+  canAttack,
   PIECE_NAMES
 } from './chess'
 
@@ -177,9 +177,7 @@ function PieceMover (props) {
             moveCount: piece.moveCount + 1
           })}
           position={[item[0], 0.05, item[1]]}
-          attack={(x => x && x.color !== piece.color)(
-            getPieceAtPosition(game, ...item)
-          )}
+          attack={canAttack(game, piece, ...item)}
         />
       ))}
     </>
