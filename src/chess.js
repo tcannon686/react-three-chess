@@ -228,7 +228,6 @@ export function getValidMoves (game, piece, attacksOnly = false) {
   const possibleCoords = []
 
   const direction = getDirection(game, piece)
-  const check = !attacksOnly && isInCheck(game, piece.color)
 
   /*
    * Creates a place to attack at the given position if possible. Returns true
@@ -245,23 +244,18 @@ export function getValidMoves (game, piece, attacksOnly = false) {
         if (hitPiece && hitPiece.color !== piece.color) {
           possibleCoords.push([x, y])
         }
-      } else if (check) {
-        /*
-         * If you are in check, you can only make moves that will get you out of
-         * check.
-         */
+      } else {
+        /* You can't move in a way that would put you in check. */
         const movedPiece = {
           ...piece,
           coord: [x, y]
         }
-        const stillInCheck = isInCheck(
+        const inCheck = isInCheck(
           updatePiece(game, movedPiece),
           piece.color)
-        if (!stillInCheck) {
+        if (!inCheck) {
           possibleCoords.push([x, y])
         }
-      } else {
-        possibleCoords.push([x, y])
       }
       return true
     }

@@ -1,13 +1,22 @@
-import React, { Suspense, useMemo, useState, useRef } from 'react'
+import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { Canvas, useLoader, useFrame } from 'react-three-fiber'
 import { a, useSpring, useTransition } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
 
+import {
+  BrowserRouter as Router,
+  Switch,
+  Route,
+  Redirect,
+  Link,
+  useParams,
+  useLocation
+} from 'react-router-dom'
+
 import { ChessCamera } from './camera'
 import {
-  makeGame,
   updatePiece,
   getValidMoves,
   canPromote,
@@ -16,6 +25,8 @@ import {
   canAttack,
   PIECE_NAMES
 } from './chess'
+
+/* global fetch */
 
 /** A chess board. */
 function Board (props) {
@@ -187,7 +198,7 @@ function PieceMover (props) {
 function useGeometries () {
   const models = useLoader(
     GLTFLoader,
-    PIECE_NAMES.map((x) => `models/${x}.glb`))
+    PIECE_NAMES.map((x) => `/models/${x}.glb`))
   return useMemo(() => {
     const ret = {}
     PIECE_NAMES.forEach((x, i) => {
@@ -297,15 +308,78 @@ function PromoteMenu (props) {
   )
 }
 
-function Game () {
-  const [game, setGame] = useState(makeGame())
+function useQuery () {
+  return new URLSearchParams(useLocation().search)
+}
+
+function useGame () {
+  const { id } = useParams()
+  const query = useQuery()
+  const [game, setGame] = useState()
+
+  const update = useCallback(async () => {
+    const result = await fetch(
+      `/api/games/${id}`,
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+    const newGame = await result.json()
+    /* Update if a piece was moved, or the game has not been loaded yet. */
+    if (!game || newGame.moveCount > game.moveCount) {
+      setGame(newGame)
+    }
+  }, [game, setGame, id])
+
+  useEffect(() => {
+    update()
+  }, [update])
+
+  useEffect(() => {
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [update])
+
+  const updateGame = (game) => {
+    const f = async () => {
+      const result = await fetch(
+        `/api/games/${id}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            game
+          })
+        }
+      )
+      const newGame = await result.json()
+      setGame(newGame)
+    }
+    f()
+  }
+
+  return [game, updateGame, query.get('color')]
+}
+
+function Game (props) {
+  const [game, setGame, color] = useGame()
 
   const geometries = useGeometries()
 
   /* The index in the pieces array of the currently selected piece. */
   const [activePiece, setActivePiece] = useState()
 
-  const turn = game.moveCount % 2 ? 'black' : 'white'
+  if (!game) {
+    return null
+  }
+
+  const turn = game.moveCount % 2 === 0 ? 'white' : 'black'
+  const opponentColor = color === 'black' ? 'white' : 'black'
+  const opponentLink = `/games/${game.id}?color=${opponentColor}`
 
   const gameOver = canMove(game, turn)
 
@@ -318,59 +392,92 @@ function Game () {
 
   return (
     <>
-      {!gameOver
-        ? (
-          <Canvas>
-            <ChessCamera turn={turn} />
-            <ambientLight intensity={0.05} />
-            <pointLight position={[0, 10, 0]} />
-            <group
-              position={[-3.5, 0, -3.5]}
-            >
-              <Board colors={['black', 'white']} />
-              {game.pieces.map((piece, i) => (
-                <Piece
-                  key={piece.id}
-                  geometry={geometries[piece.type]}
-                  game={game}
-                  piece={piece}
-                  onClick={() => setActivePiece(piece)}
-                  active={piece === activePiece}
-                  disabled={turn !== piece.color}
-                />
-              ))}
-              {activePiece !== undefined && (
-                <PieceMover
-                  game={game}
-                  piece={activePiece}
-                  onUpdate={onUpdate}
-                />
-              )}
-              <PromoteMenu
-                game={game}
-                piece={activePiece}
-                onUpdate={onUpdate}
-              />
-            </group>
-          </Canvas>
-          )
-        : (
+      {
+        gameOver && (
           <p>
             {
                 (isInCheck(game, turn) ? 'Checkmate: ' : 'Stalemate: ') +
                 turn + ' loses!'
               }
           </p>
+        )
+      }
+      <Canvas>
+        <ChessCamera turn={color} />
+        <ambientLight intensity={0.05} />
+        <pointLight position={[0, 10, 0]} />
+        <group
+          position={[-3.5, 0, -3.5]}
+        >
+          <Board colors={['black', 'white']} />
+          {game.pieces.map((piece, i) => (
+            <Piece
+              key={piece.id}
+              geometry={geometries[piece.type]}
+              game={game}
+              piece={piece}
+              onClick={() => setActivePiece(piece)}
+              active={piece === activePiece}
+              disabled={color !== piece.color || turn !== color}
+            />
+          ))}
+          {activePiece !== undefined && (
+            <PieceMover
+              game={game}
+              piece={activePiece}
+              onUpdate={onUpdate}
+            />
           )}
+          <PromoteMenu
+            game={game}
+            piece={activePiece}
+            onUpdate={onUpdate}
+          />
+        </group>
+      </Canvas>
+      <Link to={opponentLink}> Play as {opponentColor}! </Link>
     </>
   )
 }
 
+function CreateGame (props) {
+  const [id, setId] = useState()
+
+  useEffect(() => {
+    const f = async () => {
+      const result = await fetch(
+        '/api/games',
+        {
+          method: 'POST'
+        }
+      )
+      const json = await result.json()
+      setId(json.id)
+    }
+    f()
+  }, [])
+
+  if (id) {
+    return <Redirect to={`/games/${id}?color=white`} />
+  } else {
+    return null
+  }
+}
+
 function App () {
   return (
-    <Suspense fallback={<p> Loading... </p>}>
-      <Game />
-    </Suspense>
+    <Router>
+      <Switch>
+        <Route path='/games/:id'>
+          <Suspense fallback={<p> Loading... </p>}>
+            <Game />
+          </Suspense>
+        </Route>
+        <Route path='/'>
+          <CreateGame />
+        </Route>
+      </Switch>
+    </Router>
   )
 }
 
