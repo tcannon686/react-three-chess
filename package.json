@@ -17,6 +17,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "lint": "standard"
+    "lint": "standard",
+    "heroku-postbuild": "cd react-ui && yarn && yarn build"
   }
 }
