@@ -24,7 +24,7 @@ import {
   isInCheck,
   canAttack,
   PIECE_NAMES
-} from './chess'
+} from 'chess-server/chess'
 
 /* global fetch */
 
