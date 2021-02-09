@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename)
 const app = express()
 const port = process.env.PORT || 5000
 
-const client = redis.createClient()
+const client = redis.createClient(process.env.REDIS_URL)
 client.on('error', (error) => {
   console.error(error)
 })
