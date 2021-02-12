@@ -4,6 +4,7 @@ import { a, useSpring, useTransition } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
+import './App.css'
 
 import {
   BrowserRouter as Router,
@@ -312,10 +313,23 @@ function useQuery () {
   return new URLSearchParams(useLocation().search)
 }
 
+/*
+ * Returns the current value, and a setter for the current value of the players
+ * games.
+ */
+function useGames () {
+  return [
+    JSON.parse(window.localStorage.getItem('games') || '[]'),
+    (x) => { window.localStorage.setItem('games', JSON.stringify(x)) }
+  ]
+}
+
 function useGame () {
   const { id } = useParams()
   const query = useQuery()
+  const color = query.get('color')
   const [game, setGame] = useState()
+  const [games, setGames] = useGames()
 
   const update = useCallback(async () => {
     const result = await fetch(
@@ -343,7 +357,7 @@ function useGame () {
   }, [update])
 
   const updateGame = (game) => {
-    const f = async () => {
+    (async () => {
       const result = await fetch(
         `/api/games/${id}`,
         {
@@ -358,11 +372,23 @@ function useGame () {
       )
       const newGame = await result.json()
       setGame(newGame)
-    }
-    f()
+    })()
   }
 
-  return [game, updateGame, query.get('color')]
+  useEffect(() => {
+    if (!games.find(x => x.id === id)) {
+      setGames([
+        ...games,
+        {
+          id,
+          color,
+          date: Date.now()
+        }
+      ])
+    }
+  }, [games, setGames, id, color])
+
+  return [game, updateGame, color]
 }
 
 function Game (props) {
@@ -435,7 +461,11 @@ function Game (props) {
           />
         </group>
       </Canvas>
-      <Link to={opponentLink}> Play as {opponentColor}! </Link>
+      <div style={{ textAlign: 'center' }}>
+        <Link to={opponentLink}>
+          Play as {opponentColor}!
+        </Link>
+      </div>
     </>
   )
 }
@@ -444,7 +474,7 @@ function CreateGame (props) {
   const [id, setId] = useState()
 
   useEffect(() => {
-    const f = async () => {
+    (async () => {
       const result = await fetch(
         '/api/games',
         {
@@ -453,15 +483,40 @@ function CreateGame (props) {
       )
       const json = await result.json()
       setId(json.id)
-    }
-    f()
-  }, [])
+    })()
+  }, [setId])
 
   if (id) {
     return <Redirect to={`/games/${id}?color=white`} />
   } else {
     return null
   }
+}
+
+function GamesList (props) {
+  return (
+    <ul>
+      {props.games.map((x, i) => (
+        <li key={x.id}>
+          <Link to={`/games/${x.id}?color=${x.color}`}>
+            Game {i + 1}, started {new Date(x.date).toLocaleString()}, {x.color}
+          </Link>
+        </li>
+      ))}
+      <li><Link to='/games'> New Game </Link></li>
+    </ul>
+  )
+}
+
+function Homepage () {
+  const [games] = useGames()
+  return (
+    <div className='home'>
+      <h1> react-three-chess </h1>
+      <h2> My Games </h2>
+      <GamesList games={games} />
+    </div>
+  )
 }
 
 function App () {
@@ -473,8 +528,11 @@ function App () {
             <Game />
           </Suspense>
         </Route>
-        <Route path='/'>
+        <Route path='/games'>
           <CreateGame />
+        </Route>
+        <Route path='/'>
+          <Homepage />
         </Route>
       </Switch>
     </Router>

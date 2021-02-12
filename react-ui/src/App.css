@@ -1,0 +1,21 @@
+
+body {
+  font-family: 'Roboto';
+}
+
+.home {
+  margin: auto;
+  width: 500px;
+  border-radius: 5px;
+  padding: 32px;
+  margin-top: 32px;
+  box-shadow: 0px 8px 24px #aaa;
+}
+
+a {
+  color: #05f
+}
+
+h1 {
+  text-align: center;
+}
