@@ -371,6 +371,47 @@ export function canMove (game, color) {
   ))
 }
 
+export function isValidMove (prevState, state) {
+  /* Make sure state is a valid state. */
+  if (
+    !Array.isArray(state.pieces) ||
+    !state.pieces.every(x => (
+      PIECE_NAMES.includes(x.type) &&
+      Array.isArray(x.coord) &&
+      ['black', 'white'].includes(x.color) &&
+      x.id !== undefined
+    ))
+  ) {
+    return false
+  }
+
+  const movedPieces = state.pieces.filter(x => (
+    (y => !y || y.id !== x.id || y.type !== x.type)(
+      getPieceAtPosition(prevState, ...x.coord)
+    )
+  ))
+
+  if (movedPieces.length === 1) {
+    return (
+      JSON.stringify(updatePiece(prevState, movedPieces[0])) ===
+      JSON.stringify(state)
+    )
+  } else if (movedPieces.length === 2) {
+    /* Check for castling. */
+    const kings = movedPieces.filter(x => x.type === 'king')
+    if (kings.length !== 1) {
+      return false
+    } else {
+      return (
+        JSON.stringify(updatePiece(prevState, kings[0])) ===
+        JSON.stringify(state)
+      )
+    }
+  } else {
+    return false
+  }
+}
+
 export const PIECE_NAMES = [
   'bishop',
   'king',

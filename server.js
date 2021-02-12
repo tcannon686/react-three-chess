@@ -3,7 +3,7 @@ import express from 'express'
 import redis from 'redis'
 import rateLimiter from 'express-rate-limit'
 import { v4 as uuidv4 } from 'uuid'
-import { makeGame } from './chess.js'
+import { makeGame, isValidMove } from './chess.js'
 
 import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
@@ -58,10 +58,11 @@ api.post('/games', createGameLimiter, (req, res) => {
 api.post('/games/:id', (req, res) => {
   const id = req.params.id
   const key = `games:${id}`
-  client.exists(key, (error, result) => {
+  client.get(key, (error, result) => {
     if (!error && result) {
+      const game = JSON.parse(result)
       const newGame = req.body.game
-      if (newGame.id === id) {
+      if (newGame.id === id && isValidMove(game, newGame)) {
         client.set(key, JSON.stringify(newGame), (error, result) => {
           if (!error) {
             res.json(newGame)
