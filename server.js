@@ -3,7 +3,7 @@ import express from 'express'
 import redis from 'redis'
 import rateLimiter from 'express-rate-limit'
 import { v4 as uuidv4 } from 'uuid'
-import { makeGame, isValidMove } from './chess.js'
+import { makeGame, isValidMove } from 'chess-api'
 
 import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)

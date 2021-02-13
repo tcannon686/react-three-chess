@@ -1,0 +1,9 @@
+{
+  "name": "chess-api",
+  "type": "module",
+  "version": "0.1.1",
+  "description": "An API for chess",
+  "author": "Thomas Cannon <tom-cannon@playcannon.com>",
+  "main": "chess.js",
+  "license": "MIT"
+}

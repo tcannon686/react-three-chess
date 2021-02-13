@@ -6,6 +6,7 @@
   "author": "Thomas Cannon <tom-cannon@playcannon.com>",
   "license": "MIT",
   "dependencies": {
+    "chess-api": "./chess",
     "express": "^4.17.1",
     "express-rate-limit": "^5.2.3",
     "redis": "^3.0.2",
