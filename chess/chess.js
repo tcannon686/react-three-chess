@@ -81,10 +81,13 @@ export function updatePiece (game, piece, moveCount = 1) {
       x.id !== rook.id
     ))
 
-    pieces.push(piece)
+    pieces.push({
+      ...piece,
+      moveCount: piece.moveCount + moveCount
+    })
     pieces.push({
       ...rook,
-      moveCount: rook.moveCount + 1,
+      moveCount: rook.moveCount + moveCount,
       coord: [oldPiece.coord[0] + oldDir, piece.coord[1]]
     })
 
@@ -99,7 +102,10 @@ export function updatePiece (game, piece, moveCount = 1) {
     const pieces = game.pieces.filter(x => (
       x.id !== piece.id && x.id !== enPassantPiece.id
     ))
-    pieces.push(piece)
+    pieces.push({
+      ...piece,
+      moveCount: piece.moveCount + moveCount
+    })
     return {
       ...game,
       pieces,
@@ -112,7 +118,10 @@ export function updatePiece (game, piece, moveCount = 1) {
         x.coord[1] !== piece.coord[1]) &&
       x.id !== piece.id
     ))
-    pieces.push(piece)
+    pieces.push({
+      ...piece,
+      moveCount: piece.moveCount + moveCount
+    })
     return {
       ...game,
       pieces,
@@ -393,7 +402,12 @@ export function isValidMove (prevState, state) {
 
   if (movedPieces.length === 1) {
     return (
-      JSON.stringify(updatePiece(prevState, movedPieces[0])) ===
+      JSON.stringify(
+        updatePiece(prevState, {
+          ...movedPieces[0],
+          moveCount: movedPieces[0].moveCount - 1
+        })
+      ) ===
       JSON.stringify(state)
     )
   } else if (movedPieces.length === 2) {
@@ -403,8 +417,12 @@ export function isValidMove (prevState, state) {
       return false
     } else {
       return (
-        JSON.stringify(updatePiece(prevState, kings[0])) ===
-        JSON.stringify(state)
+        JSON.stringify(
+          updatePiece(prevState, {
+            ...kings[0],
+            moveCount: kings[0].moveCount - 1
+          })
+        ) === JSON.stringify(state)
       )
     }
   } else {

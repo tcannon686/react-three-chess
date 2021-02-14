@@ -185,8 +185,7 @@ function PieceMover (props) {
           coord={item}
           onClick={() => onUpdate({
             ...piece,
-            coord: item,
-            moveCount: piece.moveCount + 1
+            coord: item
           })}
           position={[item[0], 0.05, item[1]]}
           attack={canAttack(game, piece, ...item)}
