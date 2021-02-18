@@ -375,8 +375,8 @@ export function isInCheck (game, color) {
 
 /** Returns true if the given color can move. */
 export function canMove (game, color) {
-  return game.pieces.filter(x => x.color === color).every(x => (
-    getValidMoves(game, x).length === 0
+  return game.pieces.filter(x => x.color === color).some(x => (
+    getValidMoves(game, x).length !== 0
   ))
 }
 

@@ -406,7 +406,7 @@ function Game (props) {
   const opponentColor = color === 'black' ? 'white' : 'black'
   const opponentLink = `/games/${game.id}?color=${opponentColor}`
 
-  const gameOver = canMove(game, turn)
+  const gameOver = !canMove(game, turn)
 
   const onUpdate = (newPiece) => {
     setGame(updatePiece(game, newPiece))
