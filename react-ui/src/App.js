@@ -1,19 +1,18 @@
-import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import React, { Suspense, useMemo, useState, useRef, useEffect } from 'react'
 import { Canvas, useLoader, useFrame } from 'react-three-fiber'
 import { a, useSpring, useTransition } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { PlaneGeometry, BufferGeometry } from 'three'
 import './App.css'
+import { useGames, useGame } from './hooks.js'
 
 import {
   BrowserRouter as Router,
   Switch,
   Route,
   Redirect,
-  Link,
-  useParams,
-  useLocation
+  Link
 } from 'react-router-dom'
 
 import { ChessCamera } from './camera'
@@ -308,88 +307,6 @@ function PromoteMenu (props) {
   )
 }
 
-function useQuery () {
-  return new URLSearchParams(useLocation().search)
-}
-
-/*
- * Returns the current value, and a setter for the current value of the players
- * games.
- */
-function useGames () {
-  return [
-    JSON.parse(window.localStorage.getItem('games') || '[]'),
-    (x) => { window.localStorage.setItem('games', JSON.stringify(x)) }
-  ]
-}
-
-function useGame () {
-  const { id } = useParams()
-  const query = useQuery()
-  const color = query.get('color')
-  const [game, setGame] = useState()
-  const [games, setGames] = useGames()
-
-  const update = useCallback(async () => {
-    const result = await fetch(
-      `/api/games/${id}`,
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-    const newGame = await result.json()
-    /* Update if a piece was moved, or the game has not been loaded yet. */
-    if (!game || newGame.moveCount > game.moveCount) {
-      setGame(newGame)
-    }
-  }, [game, setGame, id])
-
-  useEffect(() => {
-    update()
-  }, [update])
-
-  useEffect(() => {
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [update])
-
-  const updateGame = (game) => {
-    (async () => {
-      const result = await fetch(
-        `/api/games/${id}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            game
-          })
-        }
-      )
-      const newGame = await result.json()
-      setGame(newGame)
-    })()
-  }
-
-  useEffect(() => {
-    if (!games.find(x => x.id === id)) {
-      setGames([
-        ...games,
-        {
-          id,
-          color,
-          date: Date.now()
-        }
-      ])
-    }
-  }, [games, setGames, id, color])
-
-  return [game, updateGame, color]
-}
-
 function Game (props) {
   const [game, setGame, color] = useGame()
 
@@ -463,7 +380,8 @@ function Game (props) {
       <div style={{ textAlign: 'center' }}>
         <Link to={opponentLink}>
           Play as {opponentColor}!
-        </Link>
+        </Link> <br />
+        <Link to='/'> All games </Link>
       </div>
     </>
   )
@@ -494,26 +412,66 @@ function CreateGame (props) {
 
 function GamesList (props) {
   return (
-    <ul>
-      {props.games.map((x, i) => (
-        <li key={x.id}>
-          <Link to={`/games/${x.id}?color=${x.color}`}>
-            Game {i + 1}, started {new Date(x.date).toLocaleString()}, {x.color}
-          </Link>
-        </li>
-      ))}
-      <li><Link to='/games'> New Game </Link></li>
-    </ul>
+    <table style={{ width: '100%', textAlign: 'left' }}>
+      <thead>
+        <tr>
+          <th>Game</th>
+          <th>Date</th>
+          <th>Color</th>
+        </tr>
+      </thead>
+      <tbody>
+        {props.games.map((x, i) => (
+          <tr key={x.id}>
+            <td>
+              <Link to={`/games/${x.id}?color=${x.color}`}>
+                Game {i + 1}
+              </Link>
+            </td>
+            <td>
+              {new Date(x.date).toLocaleString()}
+            </td>
+            <td>
+              {x.color}
+            </td>
+            <td>
+              <Link onClick={() => props.onDelete(x)}>
+                Delete
+              </Link>
+            </td>
+          </tr>
+        ))}
+        <tr><td><Link to='/games'> New game </Link></td></tr>
+      </tbody>
+    </table>
   )
 }
 
 function Homepage () {
-  const [games] = useGames()
+  const [games, setGames] = useGames()
+  const deleteGame = (game) => {
+    setGames(games.filter(x => x !== game))
+  }
+  const codeLink = 'https://github.com/tcannon686/react-three-chess'
+  const authorLink = 'http://playcannon.com/'
   return (
     <div className='home'>
       <h1> react-three-chess </h1>
       <h2> My Games </h2>
-      <GamesList games={games} />
+      <GamesList games={games} onDelete={deleteGame} />
+      <h2> About </h2>
+      <p>
+        Welcome to react-three-chess, a simple chess app! To start a game,
+        click <i>New game</i> in the <i>My Games</i> section above. After you
+        start a game, you can scroll down and see a link
+        to <i>Play as black!</i>, which you can copy and send to your friends!
+        Thanks for playing!
+      </p>
+      <br />
+      <p>
+        This project was created by <a href={authorLink}>Tom Cannon</a>. The
+        source code is available on GitHub <a href={codeLink}>here</a>.
+      </p>
     </div>
   )
 }
