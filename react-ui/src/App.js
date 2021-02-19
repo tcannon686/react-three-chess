@@ -368,12 +368,15 @@ function Game (props) {
     <>
       {
         gameOver && (
-          <p>
-            {
-                (isInCheck(game, turn) ? 'Checkmate: ' : 'Stalemate: ') +
-                turn + ' loses!'
-              }
-          </p>
+          <div className='page'>
+            <h1>Game over!</h1>
+            <p>
+              {
+                  (isInCheck(game, turn) ? 'Checkmate: ' : 'Stalemate: ') +
+                  turn + ' loses!'
+                }
+            </p>
+          </div>
         )
       }
       <Canvas shadowMap pixelRatio={[1, 1.5]}>
