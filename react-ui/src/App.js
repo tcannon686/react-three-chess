@@ -26,7 +26,7 @@ import {
   PIECE_NAMES
 } from 'chess-api'
 
-/* global fetch */
+const fetch = window.fetch
 
 /** A chess board. */
 function Board (props) {
@@ -308,7 +308,7 @@ function PromoteMenu (props) {
 }
 
 function Game (props) {
-  const [game, setGame, color] = useGame()
+  const [game, setGame, color, error] = useGame()
 
   const geometries = useGeometries()
 
@@ -316,7 +316,26 @@ function Game (props) {
   const [activePiece, setActivePiece] = useState()
 
   if (!game) {
-    return null
+    if (error) {
+      return (
+        <div className='page'>
+          <h1> Error </h1>
+          <p>
+            An error occured while fetching data from the server: {error}
+          </p>
+          <p>
+            This may have occurred because the specified game is no longer valid
+            (games are only kept for 30 days), or your internet connection is
+            having issues.
+          </p>
+          <p>
+            <Link to='/'>Return to Home</Link>
+          </p>
+        </div>
+      )
+    } else {
+      return null
+    }
   }
 
   const turn = game.moveCount % 2 === 0 ? 'white' : 'black'
@@ -435,9 +454,9 @@ function GamesList (props) {
               {x.color}
             </td>
             <td>
-              <Link onClick={() => props.onDelete(x)}>
+              <button onClick={() => props.onDelete(x)}>
                 Delete
-              </Link>
+              </button>
             </td>
           </tr>
         ))}
@@ -455,7 +474,7 @@ function Homepage () {
   const codeLink = 'https://github.com/tcannon686/react-three-chess'
   const authorLink = 'http://playcannon.com/'
   return (
-    <div className='home'>
+    <div className='page'>
       <h1> react-three-chess </h1>
       <h2> My Games </h2>
       <GamesList games={games} onDelete={deleteGame} />
@@ -466,6 +485,10 @@ function Homepage () {
         start a game, you can scroll down and see a link
         to <i>Play as black!</i>, which you can copy and send to your friends!
         Thanks for playing!
+      </p>
+      <p>
+        Note: Games are only saved for 30 days. After 30 days, your game will be
+        deleted.
       </p>
       <br />
       <p>

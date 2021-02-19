@@ -38,20 +38,29 @@ export function useGame () {
   const color = query.get('color')
   const [game, setGame] = useState()
   const [games, setGames] = useGames()
+  const [error, setError] = useState()
 
   const update = useCallback(async () => {
-    const result = await fetch(
-      `/api/games/${id}`,
-      {
-        headers: {
-          'Content-Type': 'application/json'
+    try {
+      const result = await fetch(
+        `/api/games/${id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+      if (result.status === 404) {
+        setError('404 not found.')
+      } else {
+        const newGame = await result.json()
+        /* Update if a piece was moved, or the game has not been loaded yet. */
+        if (!game || newGame.moveCount > game.moveCount) {
+          setGame(newGame)
         }
       }
-    )
-    const newGame = await result.json()
-    /* Update if a piece was moved, or the game has not been loaded yet. */
-    if (!game || newGame.moveCount > game.moveCount) {
-      setGame(newGame)
+    } catch (e) {
+      setError(e.toString())
     }
   }, [game, setGame, id])
 
@@ -84,7 +93,7 @@ export function useGame () {
   }
 
   useEffect(() => {
-    if (!games.find(x => x.id === id)) {
+    if (game && !games.find(x => x.id === id)) {
       setGames([
         ...games,
         {
@@ -94,7 +103,7 @@ export function useGame () {
         }
       ])
     }
-  }, [games, setGames, id, color])
+  }, [game, games, setGames, id, color])
 
-  return [game, updateGame, color]
+  return [game, updateGame, color, error]
 }
