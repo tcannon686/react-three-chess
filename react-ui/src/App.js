@@ -1,4 +1,4 @@
-import React, { Suspense, useMemo, useState, useRef, useEffect } from 'react'
+import React, { Suspense, useMemo, useState, useRef, useEffect, useContext } from 'react'
 import { Canvas, useLoader, useFrame } from 'react-three-fiber'
 import { a, useSpring, useTransition } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -28,19 +28,28 @@ import {
 
 const fetch = window.fetch
 
+const ThemeContext = React.createContext({
+  colors: {
+    black: '#2f2f2f',
+    white: '#ffffff'
+  }
+})
+
 /** A chess board. */
 function Board (props) {
   const colors = props.colors
   const geometry = useMemo(() => new PlaneGeometry(1, 1), [])
+  const theme = useContext(ThemeContext)
   const materials = useMemo(() => colors.map(color => (
     <meshStandardMaterial
       key={color}
-      color={color}
+      color={theme.colors[color]}
       metalness={0.0}
-      roughness={0.3}
+      roughness={0.4}
     />
-  )), [colors])
+  )), [theme, colors])
   const meshes = []
+
   for (let i = 0; i < 8; i++) {
     for (let j = 0; j < 8; j++) {
       meshes.push(
@@ -49,6 +58,7 @@ function Board (props) {
           geometry={geometry}
           rotation-x={-Math.PI / 2}
           position={[i, 0, j]}
+          receiveShadow
         >
           {materials[(i + j) % 2]}
         </mesh>
@@ -116,6 +126,7 @@ function Piece (props) {
   const [hovered, setHover] = useState(false)
 
   const { x, z } = useSpring({ x: piece.coord[0], z: piece.coord[1] })
+  const theme = useContext(ThemeContext)
 
   return (
     <a.mesh
@@ -127,16 +138,18 @@ function Piece (props) {
       onPointerOver={(event) => setHover(true)}
       onPointerOut={(event) => setHover(false)}
       onClick={!disabled && onClick}
+      castShadow
+      receiveShadow
     >
       <meshStandardMaterial
-        color={piece.color}
+        color={theme.colors[piece.color]}
         emissive={
           active
             ? 'orange'
             : (!disabled && hovered ? 'hotpink' : '#000000')
         }
         metalness={0.0}
-        roughness={0.3}
+        roughness={0.4}
       />
     </a.mesh>
   )
@@ -363,10 +376,15 @@ function Game (props) {
           </p>
         )
       }
-      <Canvas>
+      <Canvas shadowMap pixelRatio={[1, 1.5]}>
         <ChessCamera turn={color} />
-        <ambientLight intensity={0.05} />
-        <pointLight position={[0, 10, 0]} />
+        <hemisphereLight intensity={0.75} skyColor={0xFFFFFF} groundColor={0x0} />
+        <directionalLight
+          position={[1, 6, 2]}
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          castShadow
+        />
         <group
           position={[-3.5, 0, -3.5]}
         >
