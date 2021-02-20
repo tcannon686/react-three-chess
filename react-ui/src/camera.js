@@ -88,8 +88,7 @@ export function ChessCamera (props) {
   const targetAngle = turn === 'black' ? 0 : Math.PI
 
   const { angleX } = useSpring({
-    angleX: targetAngle,
-    delay: 1000
+    angleX: targetAngle
   })
 
   return (
