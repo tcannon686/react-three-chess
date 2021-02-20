@@ -4,12 +4,11 @@ body {
 }
 
 .page {
-  margin: auto;
   width: 500px;
   border-radius: 5px;
-  padding: 32px;
-  margin-top: 32px;
-  box-shadow: 0px 8px 24px #aaa;
+  padding: 16px;
+  box-shadow: 0px 8px 24px #00000055;
+  background: white;
 }
 
 a {
@@ -22,9 +21,37 @@ button {
   color: #05f;
   border-radius: 5px;
   cursor: pointer;
-  padding: 4px;
 }
 
 h1 {
   text-align: center;
+}
+
+.sidebar {
+  width: 200px;
+  left: 0;
+  top: 0;
+  padding: 16px;
+  box-sizing: border-box;
+  height: 100%;
+  position: fixed;
+  background: white;
+  box-shadow: 0px 0px 24px #00000055;
+}
+
+.content {
+  margin-left: 200px;
+  height: 100%;
+}
+
+.dialog {
+  margin: auto;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 200px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

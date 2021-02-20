@@ -82,6 +82,7 @@ export const AnimatedOrbiter = animated(Orbiter)
 export function ChessCamera (props) {
   const {
     turn,
+    distance,
     ...cameraProps
   } = props
 
@@ -96,7 +97,7 @@ export function ChessCamera (props) {
       target={[0, 0, 0]}
       angleX={angleX || targetAngle}
       angleY={Math.PI / 4}
-      distance={7}
+      distance={distance || 7}
     >
       <Camera rotation={[0, Math.PI, 0]} {...cameraProps} />
     </AnimatedOrbiter>

@@ -393,10 +393,22 @@ function PromoteMenu (props) {
   )
 }
 
+function Dialog (props) {
+  return (
+    <div className='dialog'>
+      <div className='page'>
+        {props.children}
+      </div>
+    </div>
+  )
+}
+
 function Game (props) {
   const [game, setGame, color, error] = useGame()
 
   const geometries = useGeometries()
+
+  const [distance, setDistance] = useState(7)
 
   /* The index in the pieces array of the currently selected piece. */
   const [activePiece, setActivePiece] = useState()
@@ -439,9 +451,67 @@ function Game (props) {
 
   return (
     <>
+      <div className='sidebar'>
+        <h3> react-three-chess </h3>
+        <ul>
+          <li>
+            <Link to={opponentLink}>
+              Play as {opponentColor}!
+            </Link>
+          </li>
+          <li>
+            <Link to='/'> All games </Link>
+          </li>
+        </ul>
+      </div>
+      <div className='content'>
+        <Canvas
+          shadowMap
+          onWheel={(e) => {
+            setDistance(Math.max(distance + e.deltaY * 0.1, 0))
+          }}
+        >
+          <ChessCamera turn={color} distance={distance} />
+          <hemisphereLight intensity={0.75} skyColor={0xFFFFFF} groundColor={0x0} />
+          <directionalLight
+            position={[1, 6, 2]}
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+            castShadow
+          />
+          <group
+            position={[-3.5, 0, -3.5]}
+          >
+            <Board colors={['black', 'white']} />
+            {game.pieces.map((piece, i) => (
+              <Piece
+                key={piece.id}
+                geometry={geometries[piece.type]}
+                game={game}
+                piece={piece}
+                onClick={() => setActivePiece(piece)}
+                active={piece === activePiece}
+                disabled={color !== piece.color || turn !== color}
+              />
+            ))}
+            {activePiece !== undefined && (
+              <PieceMover
+                game={game}
+                piece={activePiece}
+                onUpdate={onUpdate}
+              />
+            )}
+            <PromoteMenu
+              game={game}
+              piece={activePiece}
+              onUpdate={onUpdate}
+            />
+          </group>
+        </Canvas>
+      </div>
       {
         gameOver && (
-          <div className='page'>
+          <Dialog>
             <h1>Game over!</h1>
             <p>
               {
@@ -449,53 +519,9 @@ function Game (props) {
                   turn + ' loses!'
                 }
             </p>
-          </div>
+          </Dialog>
         )
       }
-      <Canvas shadowMap pixelRatio={[1, 1.5]}>
-        <ChessCamera turn={color} />
-        <hemisphereLight intensity={0.75} skyColor={0xFFFFFF} groundColor={0x0} />
-        <directionalLight
-          position={[1, 6, 2]}
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          castShadow
-        />
-        <group
-          position={[-3.5, 0, -3.5]}
-        >
-          <Board colors={['black', 'white']} />
-          {game.pieces.map((piece, i) => (
-            <Piece
-              key={piece.id}
-              geometry={geometries[piece.type]}
-              game={game}
-              piece={piece}
-              onClick={() => setActivePiece(piece)}
-              active={piece === activePiece}
-              disabled={color !== piece.color || turn !== color}
-            />
-          ))}
-          {activePiece !== undefined && (
-            <PieceMover
-              game={game}
-              piece={activePiece}
-              onUpdate={onUpdate}
-            />
-          )}
-          <PromoteMenu
-            game={game}
-            piece={activePiece}
-            onUpdate={onUpdate}
-          />
-        </group>
-      </Canvas>
-      <div style={{ textAlign: 'center' }}>
-        <Link to={opponentLink}>
-          Play as {opponentColor}!
-        </Link> <br />
-        <Link to='/'> All games </Link>
-      </div>
     </>
   )
 }
@@ -568,7 +594,7 @@ function Homepage () {
   const codeLink = 'https://github.com/tcannon686/react-three-chess'
   const authorLink = 'http://playcannon.com/'
   return (
-    <div className='page'>
+    <div className='page' style={{ margin: 'auto', marginTop: '16px' }}>
       <h1> react-three-chess </h1>
       <h2> My Games </h2>
       <GamesList games={games} onDelete={deleteGame} />
@@ -576,9 +602,9 @@ function Homepage () {
       <p>
         Welcome to react-three-chess, a simple chess app! To start a game,
         click <i>New game</i> in the <i>My Games</i> section above. After you
-        start a game, you can scroll down and see a link
-        to <i>Play as black!</i>, which you can copy and send to your friends!
-        Thanks for playing!
+        start a game, you will see a link to <i>Play as black!</i> in the
+        sidebar, which you can copy and send to your friends! Thanks for
+        playing!
       </p>
       <p>
         Note: Games are only saved for 30 days. After 30 days, your game will be
@@ -598,7 +624,7 @@ function App () {
     <Router>
       <Switch>
         <Route path='/games/:id'>
-          <Suspense fallback={<p> Loading... </p>}>
+          <Suspense fallback={<Dialog><p>Loading...</p></Dialog>}>
             <Game />
           </Suspense>
         </Route>
