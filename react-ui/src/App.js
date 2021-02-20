@@ -452,7 +452,7 @@ function Game (props) {
   return (
     <>
       <div className='sidebar'>
-        <h3> react-three-chess </h3>
+        <h1> R3Chess </h1>
         <ul>
           <li>
             <Link to={opponentLink}>
@@ -595,12 +595,12 @@ function Homepage () {
   const authorLink = 'http://playcannon.com/'
   return (
     <div className='page' style={{ margin: 'auto', marginTop: '16px' }}>
-      <h1> react-three-chess </h1>
+      <h1> R3Chess </h1>
       <h2> My Games </h2>
       <GamesList games={games} onDelete={deleteGame} />
       <h2> About </h2>
       <p>
-        Welcome to react-three-chess, a simple chess app! To start a game,
+        Welcome to R3Chess, a simple chess app! To start a game,
         click <i>New game</i> in the <i>My Games</i> section above. After you
         start a game, you will see a link to <i>Play as black!</i> in the
         sidebar, which you can copy and send to your friends! Thanks for
