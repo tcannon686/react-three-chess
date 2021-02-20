@@ -383,6 +383,8 @@ export function canMove (game, color) {
 export function isValidMove (prevState, state) {
   /* Make sure state is a valid state. */
   if (
+    !prevState ||
+    !state ||
     !Array.isArray(state.pieces) ||
     !state.pieces.every(x => (
       PIECE_NAMES.includes(x.type) &&
@@ -400,30 +402,31 @@ export function isValidMove (prevState, state) {
     )
   ))
 
-  if (movedPieces.length === 1) {
+  const isValid = piece => {
+    const oldPiece = prevState.pieces.find(x => x.id === piece.id)
     return (
       JSON.stringify(
         updatePiece(prevState, {
-          ...movedPieces[0],
-          moveCount: movedPieces[0].moveCount - 1
+          ...piece,
+          moveCount: piece.moveCount - 1
         })
-      ) ===
-      JSON.stringify(state)
+      ) === JSON.stringify(state) &&
+      getValidMoves(prevState, oldPiece).some(x => (
+        x[0] === piece.coord[0] &&
+        x[1] === piece.coord[1]
+      ))
     )
+  }
+
+  if (movedPieces.length === 1) {
+    return isValid(movedPieces[0])
   } else if (movedPieces.length === 2) {
     /* Check for castling. */
-    const kings = movedPieces.filter(x => x.type === 'king')
-    if (kings.length !== 1) {
+    const king = movedPieces.find(x => x.type === 'king')
+    if (!king) {
       return false
     } else {
-      return (
-        JSON.stringify(
-          updatePiece(prevState, {
-            ...kings[0],
-            moveCount: kings[0].moveCount - 1
-          })
-        ) === JSON.stringify(state)
-      )
+      return isValid(king)
     }
   } else {
     return false
