@@ -2,8 +2,19 @@ import React, { Suspense, useMemo, useState, useRef, useEffect, useContext } fro
 import { Canvas, useLoader, useFrame } from 'react-three-fiber'
 import { a, useSpring, useTransition } from 'react-spring/three'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import {
+  TextureLoader,
+  PlaneGeometry,
+  BufferGeometry,
+  CustomBlending,
+  OneFactor,
+  DstAlphaFactor,
+  MeshStandardMaterial,
+  Color,
+  MeshMatcapMaterial
+} from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { PlaneGeometry, BufferGeometry } from 'three'
+
 import './App.css'
 import { useGames, useGame } from './hooks.js'
 
@@ -28,26 +39,89 @@ import {
 
 const fetch = window.fetch
 
-const ThemeContext = React.createContext({
-  colors: {
-    black: '#2f2f2f',
-    white: '#ffffff'
+function makeTheme (props) {
+  const {
+    black,
+    white,
+    hover,
+    active,
+    attack,
+    attackHover,
+    move,
+    moveHover
+  } = props
+  const textureLoader = new TextureLoader()
+  const theme = {
+    materials: {
+      black: new MeshStandardMaterial({
+        color: new Color(black),
+        metalness: 0.0,
+        roughness: 0.4
+      }),
+      white: new MeshStandardMaterial({
+        color: new Color(white),
+        metalness: 0.0,
+        roughness: 0.4
+      }),
+      attack: new MeshStandardMaterial({
+        color: new Color(attack),
+        emissive: new Color(attack),
+        metalness: 0.0,
+        roughness: 0.4
+      }),
+      attackHover: new MeshStandardMaterial({
+        color: new Color(attackHover),
+        emissive: new Color(attackHover),
+        metalness: 0.0,
+        roughness: 0.4
+      }),
+      move: new MeshStandardMaterial({
+        color: new Color(move),
+        emissive: new Color(move)
+      }),
+      moveHover: new MeshStandardMaterial({
+        color: new Color(moveHover),
+        emissive: new Color(moveHover)
+      }),
+      hover: new MeshMatcapMaterial({
+        blending: CustomBlending,
+        blendSrc: OneFactor,
+        blendDst: DstAlphaFactor,
+        color: new Color().set(hover),
+        transparent: true
+      }),
+      active: new MeshMatcapMaterial({
+        blending: CustomBlending,
+        blendSrc: OneFactor,
+        blendDst: DstAlphaFactor,
+        color: new Color().set(active),
+        transparent: true
+      })
+    }
   }
-})
+  textureLoader.load('/textures/matcap.png', (texture) => {
+    theme.materials.hover.matcap = texture
+    theme.materials.active.matcap = texture
+  })
+  return theme
+}
+
+const ThemeContext = React.createContext(makeTheme({
+  black: 0x111111,
+  white: 0xCCCCCC,
+  hover: 0x555555,
+  active: 0xFF5500,
+  attack: 0xFF0F00,
+  attackHover: 0xFF0000,
+  move: 0xFF5500,
+  moveHover: 0xFF7711
+}))
 
 /** A chess board. */
 function Board (props) {
   const colors = props.colors
   const geometry = useMemo(() => new PlaneGeometry(1, 1), [])
   const theme = useContext(ThemeContext)
-  const materials = useMemo(() => colors.map(color => (
-    <meshStandardMaterial
-      key={color}
-      color={theme.colors[color]}
-      metalness={0.0}
-      roughness={0.4}
-    />
-  )), [theme, colors])
   const meshes = []
 
   for (let i = 0; i < 8; i++) {
@@ -58,10 +132,9 @@ function Board (props) {
           geometry={geometry}
           rotation-x={-Math.PI / 2}
           position={[i, 0, j]}
+          material={theme.materials[colors[(i + j) % 2]]}
           receiveShadow
-        >
-          {materials[(i + j) % 2]}
-        </mesh>
+        />
       )
     }
   }
@@ -85,21 +158,19 @@ function Slot (props) {
   } = props
   // Set up state for the hovered and active state
   const [hovered, setHover] = useState(false)
-  const color = attack
-    ? (hovered ? 'red' : 'orangered')
-    : (hovered ? 'hotpink' : 'orange')
+  const materialName = attack
+    ? (hovered ? 'attackHover' : 'attack')
+    : (hovered ? 'moveHover' : 'move')
+  const theme = useContext(ThemeContext)
 
   return (
     <a.mesh
       {...meshProps}
       onPointerOver={(event) => setHover(true)}
       onPointerOut={(event) => setHover(false)}
+      material={theme.materials[materialName]}
     >
-      <boxBufferGeometry args={[0.75, 0.1, 0.75]} />
-      <meshStandardMaterial
-        color={color}
-        emissive={color}
-      />
+      <boxBufferGeometry args={[0.75, 0.05, 0.75]} />
     </a.mesh>
   )
 }
@@ -129,29 +200,30 @@ function Piece (props) {
   const theme = useContext(ThemeContext)
 
   return (
-    <a.mesh
-      {...meshProps}
+    <a.group
       position-x={x}
       position-y={0}
       position-z={z}
       rotation-y={piece.color === 'black' ? 0 : Math.PI}
-      onPointerOver={(event) => setHover(true)}
-      onPointerOut={(event) => setHover(false)}
-      onClick={!disabled && onClick}
-      castShadow
-      receiveShadow
     >
-      <meshStandardMaterial
-        color={theme.colors[piece.color]}
-        emissive={
-          active
-            ? 'orange'
-            : (!disabled && hovered ? 'hotpink' : '#000000')
-        }
-        metalness={0.0}
-        roughness={0.4}
+      <mesh
+        {...meshProps}
+        onPointerOver={(event) => setHover(true)}
+        onPointerOut={(event) => setHover(false)}
+        onClick={!disabled && onClick}
+        castShadow
+        receiveShadow
+        material={theme.materials[piece.color]}
       />
-    </a.mesh>
+      {(hovered || active) && !disabled && (
+        <mesh
+          {...meshProps}
+          material={
+            active ? theme.materials.active : theme.materials.hover
+          }
+        />
+      )}
+    </a.group>
   )
 }
 
@@ -178,8 +250,8 @@ function PieceMover (props) {
     null,
     {
       config: {
-        tension: 400,
-        mass: 1.5
+        mass: 1.5,
+        tension: 400
       },
       trail: 25,
       from: { scale: [0, 0, 0] },
@@ -199,7 +271,7 @@ function PieceMover (props) {
             ...piece,
             coord: item
           })}
-          position={[item[0], 0.05, item[1]]}
+          position={[item[0], 0.025, item[1]]}
           attack={canAttack(game, piece, ...item)}
         />
       ))}
@@ -233,34 +305,39 @@ function useGeometries () {
 function PromoteMenuPiece (props) {
   const {
     piece,
-    ...meshProps
+    geometry,
+    ...rest
   } = props
-  const mesh = useRef()
+  const base = useRef()
 
   const [hovered, setHover] = useState(false)
 
   useFrame((state, delta) => {
-    if (mesh.current !== null) {
-      mesh.current.rotation.y += delta
+    if (base.current !== null) {
+      base.current.rotation.y += delta
     }
   })
 
+  const theme = useContext(ThemeContext)
+
   return (
-    <a.mesh
-      ref={mesh}
-      onPointerOver={() => setHover(true)}
-      onPointerOut={() => setHover(false)}
-      {...meshProps}
+    <a.group
+      {...rest}
+      ref={base}
     >
-      <meshStandardMaterial
-        color={piece.color}
-        metalness={0.0}
-        roughness={0.3}
-        emissive={hovered ? 'hotpink' : '#000000'}
-        opacity={0.9}
-        transparent
+      <mesh
+        onPointerOver={() => setHover(true)}
+        onPointerOut={() => setHover(false)}
+        material={theme.materials[piece.color]}
+        geometry={geometry}
       />
-    </a.mesh>
+      {hovered && (
+        <mesh
+          material={theme.materials.hover}
+          geometry={geometry}
+        />
+      )}
+    </a.group>
   )
 }
 
@@ -290,10 +367,6 @@ function PromoteMenu (props) {
     })),
     item => piece.id + ',' + item.type,
     {
-      config: {
-        tension: 400,
-        mass: 1.5
-      },
       trail: 25,
       from: { scale: [0, 0, 0] },
       enter: { scale: [1, 1, 1] },
