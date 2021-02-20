@@ -37,8 +37,8 @@ api.get('/games/:game', (req, res) => {
 })
 
 const createGameLimiter = rateLimiter({
-  windowMs: 60000, /* Limit creation of new games to one per minute. */
-  max: 1
+  windowMs: 24 * 60 * 60 * 1000, /* Limit creation of new games to 50 per day. */
+  max: 50
 })
 
 api.post('/games', createGameLimiter, (req, res) => {
@@ -46,7 +46,7 @@ api.post('/games', createGameLimiter, (req, res) => {
   const game = { ...makeGame(), id }
   const key = `games:${id}`
   client.set(key, JSON.stringify(game), (error, result) => {
-    client.expire(key, 30 * 24 * 60 * 60) /* Expire the game after a month. */
+    client.expire(key, 14 * 24 * 60 * 60) /* Expire the game after two weeks. */
     if (!error) {
       res.json(game)
     } else {

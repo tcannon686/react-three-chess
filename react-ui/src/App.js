@@ -607,7 +607,7 @@ function Homepage () {
         playing!
       </p>
       <p>
-        Note: Games are only saved for 30 days. After 30 days, your game will be
+        Note: Games are only saved for 14 days. After 14 days, your game will be
         deleted.
       </p>
       <br />
