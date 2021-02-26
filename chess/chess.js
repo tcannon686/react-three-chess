@@ -410,11 +410,17 @@ export function isValidMove (prevState, state) {
           ...piece,
           moveCount: piece.moveCount - 1
         })
-      ) === JSON.stringify(state) &&
-      getValidMoves(prevState, oldPiece).some(x => (
-        x[0] === piece.coord[0] &&
-        x[1] === piece.coord[1]
-      ))
+      ) === JSON.stringify(state) && (
+        getValidMoves(prevState, oldPiece).some(x => (
+          x[0] === piece.coord[0] &&
+          x[1] === piece.coord[1]
+        )) ||
+        (
+          canPromote(prevState, oldPiece) &&
+          oldPiece.coord[0] === piece.coord[0] &&
+          oldPiece.coord[1] === piece.coord[1]
+        )
+      )
     )
   }
 
