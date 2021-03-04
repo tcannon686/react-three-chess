@@ -47,12 +47,17 @@ export function makeGame () {
  *
  * The previous piece is removed based on its ID.
  */
-export function updatePiece (game, piece, moveCount = 1) {
+export function updatePiece (game, piece) {
   /* Determine if the piece castled. */
   const oldPiece = game.pieces.find(x => x.id === piece.id)
   const didCastle = (
     piece.type === 'king' &&
     Math.abs(piece.coord[0] - oldPiece.coord[0]) === 2
+  )
+  const didPromote = (
+    oldPiece.type === 'pawn' &&
+    piece.coord[0] === oldPiece.coord[0] &&
+    piece.coord[1] === oldPiece.coord[1]
   )
   const prevState = {
     ...game
@@ -83,18 +88,18 @@ export function updatePiece (game, piece, moveCount = 1) {
 
     pieces.push({
       ...piece,
-      moveCount: piece.moveCount + moveCount
+      moveCount: piece.moveCount + 1
     })
     pieces.push({
       ...rook,
-      moveCount: rook.moveCount + moveCount,
+      moveCount: rook.moveCount + 1,
       coord: [oldPiece.coord[0] + oldDir, piece.coord[1]]
     })
 
     return {
       ...game,
       pieces,
-      moveCount: game.moveCount + moveCount,
+      moveCount: game.moveCount + 1,
       prevState
     }
   } else if (enPassantPiece) {
@@ -104,12 +109,12 @@ export function updatePiece (game, piece, moveCount = 1) {
     ))
     pieces.push({
       ...piece,
-      moveCount: piece.moveCount + moveCount
+      moveCount: piece.moveCount + 1
     })
     return {
       ...game,
       pieces,
-      moveCount: game.moveCount + moveCount,
+      moveCount: game.moveCount + 1,
       prevState
     }
   } else {
@@ -120,12 +125,12 @@ export function updatePiece (game, piece, moveCount = 1) {
     ))
     pieces.push({
       ...piece,
-      moveCount: piece.moveCount + moveCount
+      moveCount: piece.moveCount + 1
     })
     return {
       ...game,
       pieces,
-      moveCount: game.moveCount + moveCount,
+      moveCount: game.moveCount + (didPromote ? 0 : 1),
       prevState
     }
   }
@@ -408,7 +413,7 @@ export function isValidMove (prevState, state) {
       JSON.stringify(
         updatePiece(prevState, {
           ...piece,
-          moveCount: piece.moveCount - 1
+          moveCount: oldPiece.moveCount
         })
       ) === JSON.stringify(state) && (
         getValidMoves(prevState, oldPiece).some(x => (

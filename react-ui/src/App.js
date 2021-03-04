@@ -306,6 +306,7 @@ function PromoteMenuPiece (props) {
   const {
     piece,
     geometry,
+    onClick,
     ...rest
   } = props
   const base = useRef()
@@ -326,6 +327,7 @@ function PromoteMenuPiece (props) {
       ref={base}
     >
       <mesh
+        onClick={onClick}
         onPointerOver={() => setHover(true)}
         onPointerOut={() => setHover(false)}
         material={theme.materials[piece.color]}
